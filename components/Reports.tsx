@@ -118,7 +118,7 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
         <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{count} records</span>
       </div>
       <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
-      <h3 className="text-2xl font-black text-white mb-2">{formatCurrency(amount, currency)}</h3>
+      <h3 className="text-[22px] font-bold leading-[33px] text-white mb-2">{formatCurrency(amount, currency)}</h3>
       {subText && <p className="text-[10px] text-white/30 italic font-medium">{subText}</p>}
     </div>
   );

@@ -127,7 +127,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
         <div className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="text-2xl font-black italic tracking-tighter">{initialData ? 'EDIT RECORD' : 'NEW VAULT ENTRY'}</h2>
+              <h2 className="text-[22px] font-bold leading-[33px] italic tracking-tight">{initialData ? 'EDIT RECORD' : 'NEW VAULT ENTRY'}</h2>
               <div className="h-1 w-12 bg-gold mt-1"></div>
             </div>
             <button type="button" onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/40 hover:text-white">

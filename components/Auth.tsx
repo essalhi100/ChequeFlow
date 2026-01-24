@@ -33,7 +33,7 @@ const Auth: React.FC = () => {
           <div className="w-14 h-14 rounded-[12px] bg-transparent border border-gold/30 flex items-center justify-center mb-6 shadow-2xl shadow-gold/5">
             <ShieldCheck className="text-gold" size={28} />
           </div>
-          <h1 className="text-2xl font-bold italic tracking-tight mb-1 text-white uppercase">FINANSSE PRO</h1>
+          <h1 className="text-[22px] font-bold leading-[33px] italic tracking-tight mb-1 text-white uppercase">FINANSSE PRO</h1>
           <p className="text-white/30 text-[9px] uppercase tracking-[0.2em] font-bold">
             {isSignUp ? 'Enregistrement Sécurisé' : 'Accès au Coffre-fort'}
           </p>

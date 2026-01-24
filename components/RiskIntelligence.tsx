@@ -3,7 +3,8 @@ import React, { useMemo } from 'react';
 import { 
   ShieldAlert, AlertTriangle, Activity, TrendingDown, 
   Building2, UserX, DollarSign, ChevronRight, AlertCircle,
-  ArrowUpRight, BarChart3, Users, TrendingUp, Sparkles
+  ArrowUpRight, BarChart3, Users, TrendingUp, Sparkles, Clock, 
+  ArrowRight
 } from 'lucide-react';
 import { Check, CheckStatus, Currency, RiskLevel, FinancialRisk, CheckType } from '../types.ts';
 import { formatCurrency } from '../constants.tsx';
@@ -19,6 +20,8 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
   const riskAnalysis = useMemo(() => {
     const risks: FinancialRisk[] = [];
     const today = new Date();
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(today.getDate() + 3);
     
     // 1. Bank Concentration Check (>50% of total volume)
     const bankMap: Record<string, number> = {};
@@ -84,6 +87,14 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
       }
     });
 
+    // 4. Critical Upcoming Outgoing Checks (3 Days)
+    const upcomingOutgoing = checks.filter(c => 
+      c.type === CheckType.OUTGOING && 
+      c.status === CheckStatus.PENDING && 
+      new Date(c.due_date) >= today && 
+      new Date(c.due_date) <= threeDaysFromNow
+    );
+
     const highCount = risks.filter(r => r.level === RiskLevel.HIGH).length;
     const medCount = risks.filter(r => r.level === RiskLevel.MEDIUM).length;
     const totalRiskAmount = risks.reduce((s, r) => s + r.amount, 0);
@@ -101,6 +112,8 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
     return { 
       risks, totalRiskAmount, riskScore, highCount, medCount, 
       recoveryRate, overdueIncomingSum, 
+      upcomingOutgoing,
+      upcomingOutgoingSum: upcomingOutgoing.reduce((s, c) => s + c.amount, 0),
       topExposureEntityName: topEntity[0], 
       topExposurePercentage: totalVolume > 0 ? (topEntity[1] / totalVolume) * 100 : 0 
     };
@@ -112,20 +125,20 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
       [RiskLevel.MEDIUM]: { border: 'border-amber-500/30', bg: 'bg-amber-500/[0.03]', text: 'text-amber-400', icon: AlertTriangle },
       [RiskLevel.LOW]: { border: 'border-blue-500/30', bg: 'bg-blue-500/[0.03]', text: 'text-blue-400', icon: AlertCircle },
     };
-    const style = config[risk.level];
-    const Icon = style.icon;
+    const currentStyle = config[risk.level];
+    const Icon = currentStyle.icon;
 
     return (
-      <div className={`p-6 rounded-[16px] border ${style.border} ${style.bg} flex items-center justify-between group transition-all hover:bg-white/[0.04] animate-in fade-in slide-in-from-left-2 duration-300`}>
+      <div className={`p-6 rounded-[16px] border ${currentStyle.border} ${currentStyle.bg} flex items-center justify-between group transition-all hover:bg-white/[0.04] animate-in fade-in slide-in-from-left-2 duration-300`}>
         <div className="flex items-center gap-5">
-          <div className={`p-3 rounded-[12px] bg-white/[0.03] ${style.text}`}>
+          <div className={`p-3 rounded-[12px] bg-white/[0.03] ${currentStyle.text}`}>
             <Icon size={24} />
           </div>
           <div>
             <p className="text-[14px] font-bold text-white mb-1">{risk.description}</p>
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-black text-white/30 uppercase tracking-widest">{formatCurrency(risk.amount, currency)}</span>
-              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded bg-white/5 ${style.text}`}>{risk.level}</span>
+              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded bg-white/5 ${currentStyle.text}`}>{risk.level}</span>
             </div>
           </div>
         </div>
@@ -173,140 +186,109 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="glass-card p-8 rounded-[20px] border-white/5 bg-gradient-to-br from-white/[0.02] to-transparent">
           <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Capital à Risque</p>
-          <h3 className="text-2xl font-black text-white mb-2">{formatCurrency(riskAnalysis.totalRiskAmount, currency)}</h3>
+          <h3 className="text-[22px] font-bold leading-[33px] text-white mb-2">{formatCurrency(riskAnalysis.totalRiskAmount, currency)}</h3>
           <p className="text-[11px] text-rose-500 font-bold flex items-center gap-1">
             <TrendingDown size={14} /> Flux critique
           </p>
         </div>
         <div className="glass-card p-8 rounded-[20px] border-rose-500/10 bg-rose-500/[0.02]">
           <p className="text-[10px] font-black text-rose-500/50 uppercase tracking-[0.2em] mb-4">Niveau Élevé</p>
-          <h3 className="text-3xl font-black text-rose-500 mb-2">{riskAnalysis.highCount}</h3>
+          <h3 className="text-[22px] font-bold leading-[33px] text-rose-500 mb-2">{riskAnalysis.highCount}</h3>
           <p className="text-[11px] text-white/20 font-medium">Alertes critiques</p>
         </div>
         <div className="glass-card p-8 rounded-[20px] border-amber-500/10 bg-amber-500/[0.02]">
-          <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.2em] mb-4">Niveau Modéré</p>
-          <h3 className="text-3xl font-black text-amber-500 mb-2">{riskAnalysis.medCount}</h3>
-          <p className="text-[11px] text-white/20 font-medium">Attention requise</p>
+          <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.2em] mb-4">Niveau Moyen</p>
+          <h3 className="text-[22px] font-bold leading-[33px] text-amber-500 mb-2">{riskAnalysis.medCount}</h3>
+          <p className="text-[11px] text-white/20 font-medium">Points de vigilance</p>
         </div>
-        <div className="glass-card p-8 rounded-[20px] border-white/5">
-          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Seuil d'Alerte</p>
-          <h3 className="text-2xl font-black text-gold mb-2">{formatCurrency(highValueThreshold, currency)}</h3>
-          <p className="text-[11px] text-white/20 font-medium italic">Paramètre système</p>
+        <div className="glass-card p-8 rounded-[20px] border-white/5 bg-gradient-to-br from-white/[0.02] to-transparent">
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Ratio de Recouvrement</p>
+          <h3 className="text-[22px] font-bold leading-[33px] text-emerald-500 mb-2">{riskAnalysis.recoveryRate.toFixed(1)}%</h3>
+          <p className="text-[11px] text-white/20 font-medium">Efficacité des flux entrants</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white/60">Journal des Anomalies</h4>
-            <div className="flex items-center gap-2">
-              <Activity size={14} className="text-gold" />
-              <span className="text-[9px] font-bold text-white/30 uppercase">Scan temps réel actif</span>
-            </div>
+            <h4 className="text-md font-bold flex items-center gap-2.5">
+              <ShieldAlert className="text-gold" size={18} />
+              Signaux de Vulnérabilité Détectés
+            </h4>
+            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">{riskAnalysis.risks.length} Incidents</span>
           </div>
-
-          <div className="space-y-3">
+          
+          <div className="space-y-4">
             {riskAnalysis.risks.length > 0 ? (
-              riskAnalysis.risks.map(risk => <RiskCard key={risk.id} risk={risk} />)
+              riskAnalysis.risks.map(risk => (
+                <RiskCard key={risk.id} risk={risk} />
+              ))
             ) : (
-              <div className="py-24 flex flex-col items-center justify-center glass-card rounded-[20px] border-dashed border-white/5">
-                <div className="p-5 bg-emerald-500/10 rounded-full text-emerald-400 mb-5">
-                   <ShieldAlert size={32} />
-                </div>
-                <p className="text-sm font-bold text-white/40">Aucun risque critique détecté</p>
-                <p className="text-[10px] uppercase tracking-widest text-white/20 mt-2">Le système est stable</p>
+              <div className="p-12 border-2 border-dashed border-white/5 rounded-[20px] text-center">
+                <Sparkles className="mx-auto text-gold/20 mb-4" size={40} />
+                <p className="text-[11px] font-black uppercase tracking-widest text-white/20">Aucune anomalie détectée dans le périmètre actuel</p>
               </div>
             )}
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="glass-card p-8 rounded-[20px] border-white/5">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-8">Classification Stratégique</h4>
-            <div className="space-y-6">
-              {[
-                { label: 'Chèques Retournés', count: riskAnalysis.risks.filter(r => r.type === 'returned').length, color: 'bg-rose-500' },
-                { label: 'Maturité Dépassée', count: riskAnalysis.risks.filter(r => r.type === 'overdue').length, color: 'bg-rose-400' },
-                { label: 'Flux Haute Valeur', count: riskAnalysis.risks.filter(r => r.type === 'high_value').length, color: 'bg-amber-400' },
-                { label: 'Concentration Bancaire', count: riskAnalysis.risks.filter(r => r.type === 'concentration').length, color: 'bg-blue-400' }
-              ].map((item, i) => (
-                <div key={i}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[11px] font-bold text-white/50">{item.label}</span>
-                    <span className="text-[11px] font-black text-white">{item.count}</span>
+          <div className="glass-card p-7 rounded-[20px] border-white/5">
+             <h4 className="text-sm font-black uppercase tracking-widest text-white/40 mb-6 flex items-center gap-2">
+               <Activity size={16} className="text-gold" /> Exposure Matrix
+             </h4>
+             
+             <div className="space-y-6">
+               <div className="p-4 rounded-[16px] bg-white/[0.02] border border-white/5">
+                 <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Top Exposure</p>
+                 <p className="text-sm font-bold text-white mb-2">{riskAnalysis.topExposureEntityName || 'N/A'}</p>
+                 <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-1">
+                   <div className="h-full bg-gold" style={{ width: `${riskAnalysis.topExposurePercentage}%` }} />
+                 </div>
+                 <p className="text-[10px] text-gold font-bold">{riskAnalysis.topExposurePercentage.toFixed(1)}% du volume total</p>
+               </div>
+
+               <div className="p-4 rounded-[16px] bg-white/[0.02] border border-white/5">
+                 <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Paiements Sortants (3J)</p>
+                 <p className="text-lg font-black text-white mb-1">{formatCurrency(riskAnalysis.upcomingOutgoingSum, currency)}</p>
+                 <p className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
+                   <Clock size={12} /> {riskAnalysis.upcomingOutgoing.length} instruments à provisionner
+                 </p>
+               </div>
+
+               <div className="pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Santé du Portefeuille</span>
+                    <span className="text-[10px] font-black text-emerald-400 uppercase">Optimal</span>
                   </div>
-                  <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${item.color} transition-all duration-700`}
-                      style={{ width: `${(item.count / (riskAnalysis.risks.length || 1)) * 100}%` }}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-[12px] bg-emerald-500/5 border border-emerald-500/10 text-center">
+                      <p className="text-[10px] font-black text-emerald-400 mb-1">Recouvrement</p>
+                      <p className="text-sm font-black text-white">{riskAnalysis.recoveryRate.toFixed(0)}%</p>
+                    </div>
+                    <div className="p-3 rounded-[12px] bg-rose-500/5 border border-rose-500/10 text-center">
+                      <p className="text-[10px] font-black text-rose-400 mb-1">Risque</p>
+                      <p className="text-sm font-black text-white">{riskAnalysis.riskScore}%</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+               </div>
+             </div>
           </div>
           
-          {/* Note: Standalone AI Recommendation card removed from here as it's now integrated in the report below */}
-        </div>
-      </div>
-
-      {/* STRATEGIC INTELLIGENCE REPORT SECTION - Enhanced with AI Recommendation */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
-        <div className="glass-card p-10 rounded-[14px] bg-gold/5 border-gold/10 lg:col-span-3 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 pointer-events-none">
-            <TrendingUp size={200} className="text-white" aria-hidden="true" />
-          </div>
-          <h4 className="text-sm font-black text-gold uppercase tracking-widest mb-8 italic flex items-center gap-3">
-            <div className="w-8 h-[1px] bg-gold/50"></div> Strategic Intelligence Report
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-            {/* 1. Liquidity Diagnostic */}
-            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-gold/30 transition-all duration-500 flex flex-col">
-              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-gold"></div> 
-                Liquidity Diagnostic
-              </h5>
-              <p className="text-xs text-white/50 leading-relaxed italic">
-                The current system recovery rate of <strong>{riskAnalysis.recoveryRate.toFixed(1)}%</strong> indicates 
-                {riskAnalysis.overdueIncomingSum > 0 
-                  ? ` an urgent need for auditing overdue incoming instruments totaling ${formatCurrency(riskAnalysis.overdueIncomingSum, currency)}.`
-                  : " a healthy collection pipeline with no critical overdue incoming assets currently detected."}
-              </p>
+          <button className="w-full p-6 glass-card rounded-[20px] border-gold/20 bg-gold/[0.02] group hover:bg-gold/5 transition-all flex items-center justify-between">
+            <div className="text-left">
+              <p className="text-[10px] font-black text-gold uppercase tracking-widest mb-1">Audit Global</p>
+              <p className="text-[11px] text-white/40 font-medium">Générer un rapport PDF complet</p>
             </div>
-
-            {/* 2. Exposure Advisory */}
-            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-emerald-500/30 transition-all duration-500 flex flex-col">
-              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> 
-                Exposure Advisory
-              </h5>
-              <p className="text-xs text-white/50 leading-relaxed italic">
-                {riskAnalysis.topExposureEntityName 
-                  ? `Counterparty concentration is visible for ${riskAnalysis.topExposureEntityName} representing ${riskAnalysis.topExposurePercentage.toFixed(1)}% of pending capital. We advise a risk balancing strategy.`
-                  : "Exposure is well-distributed across your counterparties. No single node poses a systemic dependency at this moment."}
-              </p>
+            <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:scale-110 transition-transform">
+              <ArrowRight size={18} />
             </div>
-
-            {/* 3. Recommandation IA - Integrated here */}
-            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-amber-500/30 transition-all duration-500 flex flex-col">
-              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> 
-                AI Strategic Recommendation
-              </h5>
-              <p className="text-xs text-white/50 leading-relaxed italic">
-                {riskAnalysis.riskScore > 30 
-                  ? "Alerte : Une fragilité de liquidité est détectée. Priorisez la diversification des banques et lancez des actions de recouvrement immédiates pour les impayés identifiés."
-                  : "Stabilité confirmée. Votre profil de risque est optimal. Maintenez vos processus actuels de vérification des émetteurs et surveillez les seuils critiques."}
-              </p>
-              <div className="mt-auto pt-4 flex items-center gap-2 text-[9px] font-black text-amber-500/50 uppercase tracking-widest">
-                <Sparkles size={12} /> Generated by Core Logic
-              </div>
-            </div>
-          </div>
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
+// Fix: Added missing default export for RiskIntelligence component.
 export default RiskIntelligence;

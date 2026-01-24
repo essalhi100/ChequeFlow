@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -13,7 +13,9 @@ import {
   Activity,
   HardDrive,
   Globe,
-  Zap
+  Zap,
+  ArrowUpRight,
+  CalendarDays
 } from 'lucide-react';
 import { Check, CheckType, CheckStatus, Currency } from '../types.ts';
 import { formatCurrency, getTypeBadge } from '../constants.tsx';
@@ -35,7 +37,36 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
 
   const pendingChecks = checks.filter(c => c.status === CheckStatus.PENDING);
   const overdueChecks = pendingChecks.filter(c => new Date(c.due_date) < new Date());
-  const paidChecksCount = checks.filter(c => c.status === CheckStatus.PAID).length;
+  
+  // New filtered checks for operational alerts
+  const operationalAlerts = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(today.getDate() + 3);
+    threeDaysFromNow.setHours(23, 59, 59, 999);
+
+    const incomingToday = checks.filter(c => 
+      c.type === CheckType.INCOMING && 
+      c.status === CheckStatus.PENDING && 
+      new Date(c.due_date).toDateString() === today.toDateString()
+    );
+
+    const outgoingNext3Days = checks.filter(c => 
+      c.type === CheckType.OUTGOING && 
+      c.status === CheckStatus.PENDING && 
+      new Date(c.due_date) >= today && 
+      new Date(c.due_date) <= threeDaysFromNow
+    );
+
+    return {
+      incomingToday,
+      incomingTodaySum: incomingToday.reduce((s, c) => s + c.amount, 0),
+      outgoingNext3Days,
+      outgoingNext3DaysSum: outgoingNext3Days.reduce((s, c) => s + c.amount, 0)
+    };
+  }, [checks]);
 
   const recentChecks = [...checks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
 
@@ -45,7 +76,7 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
         <Icon size={70} />
       </div>
       <p className="text-white/30 text-[9px] font-bold uppercase tracking-[0.15em] mb-3">{title}</p>
-      <h3 className="text-[22px] font-bold mb-3 tracking-tight">
+      <h3 className="text-[22px] font-bold leading-[33px] mb-3 tracking-tight">
         {isCurrency ? formatCurrency(amount, currency) : amount}
       </h3>
       {trend !== undefined && (
@@ -61,7 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h2 className={`text-2xl font-bold italic tracking-tight ${isAdmin ? 'text-gold' : 'text-white'}`}>
+            <h2 className={`text-[22px] font-bold leading-[33px] italic tracking-tight ${isAdmin ? 'text-gold' : 'text-white'}`}>
               {isAdmin ? 'CONSOLE D\'ADMINISTRATION' : 'TABLEAU DE BORD'}
             </h2>
             {isAdmin && (
@@ -150,6 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
         </div>
 
         <div className="space-y-6">
+          {/* Main Risk Card */}
           <div className="glass-card p-7 rounded-[12px] border-rose-500/10 bg-rose-500/[0.02]">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2.5 bg-rose-500/10 rounded-[10px] text-rose-400">
@@ -165,6 +197,61 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
             >
               Gérer les risques <ChevronRight size={14} />
             </button>
+          </div>
+
+          {/* Operational Alerts Area */}
+          <div className="space-y-4 pt-2 border-t border-white/5">
+            <h6 className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-4">Prochaines Opérations</h6>
+            
+            {/* Incoming Today Alert */}
+            <div className={`p-5 rounded-[12px] border ${operationalAlerts.incomingToday.length > 0 ? 'border-emerald-500/20 bg-emerald-500/[0.03]' : 'border-white/5 bg-white/[0.01] opacity-40'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-[8px] ${operationalAlerts.incomingToday.length > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white/20'}`}>
+                    <ArrowUpRight size={14} />
+                  </div>
+                  <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Entrants (Aujourd'hui)</span>
+                </div>
+                {operationalAlerts.incomingToday.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-[8px] font-black text-emerald-400 uppercase">Actif</span>
+                )}
+              </div>
+              {operationalAlerts.incomingToday.length > 0 ? (
+                <>
+                  <p className="text-lg font-black text-white">{formatCurrency(operationalAlerts.incomingTodaySum, currency)}</p>
+                  <p className="text-[9px] text-emerald-400/60 font-bold mt-1 uppercase italic tracking-tighter">
+                    {operationalAlerts.incomingToday.length} instrument(s) à encaisser immédiatement
+                  </p>
+                </>
+              ) : (
+                <p className="text-[10px] text-white/20 italic">Aucun flux entrant prévu aujourd'hui</p>
+              )}
+            </div>
+
+            {/* Outgoing Next 3 Days Alert */}
+            <div className={`p-5 rounded-[12px] border ${operationalAlerts.outgoingNext3Days.length > 0 ? 'border-amber-500/20 bg-amber-500/[0.03]' : 'border-white/5 bg-white/[0.01] opacity-40'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-[8px] ${operationalAlerts.outgoingNext3Days.length > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-white/5 text-white/20'}`}>
+                    <CalendarDays size={14} />
+                  </div>
+                  <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Sortants (3 Prochains Jours)</span>
+                </div>
+                {operationalAlerts.outgoingNext3Days.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-[8px] font-black text-amber-400 uppercase">Alert</span>
+                )}
+              </div>
+              {operationalAlerts.outgoingNext3Days.length > 0 ? (
+                <>
+                  <p className="text-lg font-black text-white">{formatCurrency(operationalAlerts.outgoingNext3DaysSum, currency)}</p>
+                  <p className="text-[9px] text-amber-400/60 font-bold mt-1 uppercase italic tracking-tighter">
+                    {operationalAlerts.outgoingNext3Days.length} paiement(s) à provisionner
+                  </p>
+                </>
+              ) : (
+                <p className="text-[10px] text-white/20 italic">Aucune sortie critique dans les 72h</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
