@@ -26,6 +26,7 @@ const STORAGE_KEY = 'finansse_internal_db';
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('dash');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [checks, setChecks] = useState<Check[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -179,7 +180,16 @@ const App: React.FC = () => {
 
   return (
     <div className="flex bg-[#05070a] min-h-screen text-white overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} companyName={settings.company_name} logoUrl={settings.logo_url} onLogout={() => supabase.auth.signOut()} userEmail={session.user.email} />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        companyName={settings.company_name} 
+        logoUrl={settings.logo_url} 
+        onLogout={() => supabase.auth.signOut()} 
+        userEmail={session.user.email}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
       
       <main className="flex-1 overflow-y-auto h-screen relative">
         <div className="sticky top-0 z-40 p-8 flex items-center justify-end pointer-events-none">
