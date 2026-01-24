@@ -3,26 +3,34 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// استخدام المنفذ المقدم من Railway أو افتراضياً 3000
 const port = process.env.PORT || 3000;
+const deploymentUrl = 'https://chequeflow-production.up.railway.app';
 
-// إعداد الرؤوس (Headers) لضمان معالجة ملفات TypeScript كـ JavaScript في المتصفح
+// إعداد رؤوس CORS والأمان
 app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', deploymentUrl);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // رؤوس أمان إضافية
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('X-Frame-Options', 'DENY');
+  res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
   if (req.url.endsWith('.ts') || req.url.endsWith('.tsx')) {
     res.type('application/javascript');
   }
   next();
 });
 
-// خدمة الملفات الثابتة من المجلد الجذري
+// خدمة الملفات الثابتة
 app.use(express.static(__dirname));
 
-// التعامل مع تطبيقات الصفحة الواحدة (SPA)
-// أي مسار غير موجود يوجه إلى index.html
+// التعامل مع مسارات SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`FINANSSE PRO Deployment Active on Port: ${port}`);
+  console.log(`FINANSSE PRO Deployment Active on: ${deploymentUrl}`);
 });
