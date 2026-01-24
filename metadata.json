@@ -1,0 +1,7 @@
+{
+  "name": "ChequeFlow",
+  "description": "Premium financial management application for businesses and accountants to track bank checks with AI-powered OCR and luxury bank aesthetics.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
