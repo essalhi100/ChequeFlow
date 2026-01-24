@@ -1,12 +1,11 @@
 
 {
   "name": "finansse-pro",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Premium High-Performance Financial Management System",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -14,6 +13,7 @@
   "dependencies": {
     "express": "^4.21.2",
     "@supabase/supabase-js": "^2.48.1",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sucrase": "^3.35.0"
   }
 }

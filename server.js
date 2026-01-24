@@ -1,14 +1,41 @@
 
 const express = require('express');
 const path = require('path');
-const app = express();
+const fs = require('fs');
+const { transform } = require('sucrase');
 
+const app = express();
 const port = process.env.PORT || 3000;
 const deploymentUrl = 'https://chequeflow-production.up.railway.app';
 
-// 1. إعدادات CORS المتقدمة والأمان
+// Middleware لتحويل ملفات TypeScript و JSX إلى JavaScript
 app.use((req, res, next) => {
-  // السماح بالاتصال من رابط المشروع ومن البيئة المحلية للتطوير
+  const ext = path.extname(req.url);
+  if (ext === '.ts' || ext === '.tsx') {
+    const filePath = path.join(__dirname, req.url);
+    
+    if (fs.existsSync(filePath)) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        // تحويل الكود باستخدام sucrase
+        const result = transform(content, {
+          transforms: ['typescript', 'jsx'],
+          production: true
+        });
+        
+        res.set('Content-Type', 'application/javascript');
+        return res.send(result.code);
+      } catch (err) {
+        console.error(`Error transpiling ${req.url}:`, err);
+        return res.status(500).send(`Transpilation Error: ${err.message}`);
+      }
+    }
+  }
+  next();
+});
+
+// إعدادات CORS والأمان
+app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && (origin === deploymentUrl || origin.includes('localhost') || origin.includes('127.0.0.1'))) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -19,39 +46,19 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
-
-  // 2. معالجة أنواع الملفات (MIME Types)
-  // التأكد من أن المتصفح يعامل ملفات .ts و .tsx كملفات JavaScript
-  if (req.url.endsWith('.ts') || req.url.endsWith('.tsx')) {
-    res.type('application/javascript');
-  }
-
-  // رؤوس الأمان الأساسية
   res.header('X-Content-Type-Options', 'nosniff');
   res.header('X-Frame-Options', 'SAMEORIGIN');
 
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// 3. خدمة الملفات الثابتة من المجلد الرئيسي
-app.use(express.static(__dirname, {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    }
-  }
-}));
+// خدمة الملفات الثابتة
+app.use(express.static(__dirname));
 
-// 4. حماية مسارات SPA ومنع الخطأ Unexpected token '<'
-// نمنع إرسال index.html إذا كان الطلب يبحث عن ملف (ينتهي بامتداد مثل .js أو .ts) ولكنه غير موجود
+// التعامل مع مسارات SPA
 app.get('*', (req, res) => {
-  const ext = path.extname(req.url);
-  if (ext && ext !== '.html') {
-    return res.status(404).send('File not found');
-  }
+  if (path.extname(req.url)) return res.status(404).send('Resource not found');
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
