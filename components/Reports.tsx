@@ -415,38 +415,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
           </table>
         </div>
       </div>
-
-      {/* STRATEGIC INTELLIGENCE REPORT SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="glass-card p-10 rounded-[14px] bg-gold/5 border-gold/10 lg:col-span-2 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 pointer-events-none">
-            <TrendingUp size={200} className="text-white" aria-hidden="true" />
-          </div>
-          <h4 className="text-sm font-black text-gold uppercase tracking-widest mb-8 italic flex items-center gap-3">
-            <div className="w-8 h-[1px] bg-gold/50"></div> Strategic Intelligence Report
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-gold/30 transition-all duration-500">
-              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-gold"></div> 
-                Liquidity Diagnostic
-              </h5>
-              <p className="text-xs text-white/50 leading-relaxed italic">
-                The current system recovery rate of 0% indicates an urgent need for auditing overdue high-value instruments from <strong>GHU</strong>.
-              </p>
-            </div>
-            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-emerald-500/30 transition-all duration-500">
-              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> 
-                Exposure Advisory
-              </h5>
-              <p className="text-xs text-white/50 leading-relaxed italic">
-                Counterparty concentration is highly visible in the top entities. We advise a risk balancing strategy to mitigate systemic dependencies on a single financial node.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

@@ -3,9 +3,9 @@ import React, { useMemo } from 'react';
 import { 
   ShieldAlert, AlertTriangle, Activity, TrendingDown, 
   Building2, UserX, DollarSign, ChevronRight, AlertCircle,
-  ArrowUpRight, BarChart3, Users
+  ArrowUpRight, BarChart3, Users, TrendingUp, Sparkles
 } from 'lucide-react';
-import { Check, CheckStatus, Currency, RiskLevel, FinancialRisk } from '../types.ts';
+import { Check, CheckStatus, Currency, RiskLevel, FinancialRisk, CheckType } from '../types.ts';
 import { formatCurrency } from '../constants.tsx';
 
 interface RiskIntelligenceProps {
@@ -37,12 +37,11 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
       }
     });
 
-    // 2. High Risk Clients (Those with at least 1 returned check)
+    // 2. High Risk Clients
     const badClients = new Set(checks.filter(c => c.status === CheckStatus.RETURNED).map(c => c.entity_name));
     
     // 3. Status & Value Checks
     checks.forEach(c => {
-      // Returned Checks
       if (c.status === CheckStatus.RETURNED) {
         risks.push({
           id: `ret-${c.id}`,
@@ -53,8 +52,6 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
           relatedId: c.id
         });
       }
-      
-      // Overdue Checks
       if (c.status === CheckStatus.PENDING && new Date(c.due_date) < today) {
         risks.push({
           id: `over-${c.id}`,
@@ -65,8 +62,6 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
           relatedId: c.id
         });
       }
-
-      // High Value Threshold
       if (c.amount >= highValueThreshold && c.status === CheckStatus.PENDING) {
         risks.push({
           id: `high-${c.id}`,
@@ -77,8 +72,6 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
           relatedId: c.id
         });
       }
-
-      // Client Risk Warning
       if (badClients.has(c.entity_name) && c.status === CheckStatus.PENDING) {
         risks.push({
           id: `cl-${c.id}`,
@@ -96,7 +89,21 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
     const totalRiskAmount = risks.reduce((s, r) => s + r.amount, 0);
     const riskScore = Math.min(100, (highCount * 30) + (medCount * 10));
 
-    return { risks, totalRiskAmount, riskScore, highCount, medCount };
+    const paidIncoming = checks.filter(c => c.status === CheckStatus.PAID && c.type === CheckType.INCOMING).reduce((s, c) => s + c.amount, 0);
+    const totalIncoming = checks.filter(c => c.type === CheckType.INCOMING).reduce((s, c) => s + c.amount, 0);
+    const recoveryRate = totalIncoming > 0 ? (paidIncoming / totalIncoming) * 100 : 0;
+    const overdueIncomingSum = checks.filter(c => c.type === CheckType.INCOMING && c.status === CheckStatus.PENDING && new Date(c.due_date) < today).reduce((s, c) => s + c.amount, 0);
+
+    const entityMap: Record<string, number> = {};
+    checks.filter(c => c.status === CheckStatus.PENDING).forEach(c => entityMap[c.entity_name] = (entityMap[c.entity_name] || 0) + c.amount);
+    const topEntity = Object.entries(entityMap).sort((a, b) => b[1] - a[1])[0] || [null, 0];
+    
+    return { 
+      risks, totalRiskAmount, riskScore, highCount, medCount, 
+      recoveryRate, overdueIncomingSum, 
+      topExposureEntityName: topEntity[0], 
+      topExposurePercentage: totalVolume > 0 ? (topEntity[1] / totalVolume) * 100 : 0 
+    };
   }, [checks, highValueThreshold]);
 
   const RiskCard = ({ risk }: { risk: FinancialRisk }) => {
@@ -123,15 +130,13 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {risk.relatedId ? (
+          {risk.relatedId && (
             <button 
               onClick={() => onViewCheck?.(risk.relatedId!)}
               className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-[10px] text-[10px] font-bold text-white uppercase tracking-widest transition-all border border-white/5"
             >
               Détails
             </button>
-          ) : (
-             <span className="text-[9px] font-black text-white/10 uppercase italic">Agrégat</span>
           )}
           <ChevronRight size={18} className="text-white/10" />
         </div>
@@ -240,17 +245,63 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
               ))}
             </div>
           </div>
+          
+          {/* Note: Standalone AI Recommendation card removed from here as it's now integrated in the report below */}
+        </div>
+      </div>
 
-          <div className="p-8 rounded-[20px] bg-gold/5 border border-gold/10">
-             <div className="flex items-center gap-3 text-gold mb-4">
-                <ArrowUpRight size={18} />
-                <h5 className="text-[10px] font-black uppercase tracking-[0.2em]">Recommandation IA</h5>
-             </div>
-             <p className="text-xs text-white/60 leading-relaxed font-medium italic">
+      {/* STRATEGIC INTELLIGENCE REPORT SECTION - Enhanced with AI Recommendation */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
+        <div className="glass-card p-10 rounded-[14px] bg-gold/5 border-gold/10 lg:col-span-3 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 pointer-events-none">
+            <TrendingUp size={200} className="text-white" aria-hidden="true" />
+          </div>
+          <h4 className="text-sm font-black text-gold uppercase tracking-widest mb-8 italic flex items-center gap-3">
+            <div className="w-8 h-[1px] bg-gold/50"></div> Strategic Intelligence Report
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+            {/* 1. Liquidity Diagnostic */}
+            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-gold/30 transition-all duration-500 flex flex-col">
+              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-gold"></div> 
+                Liquidity Diagnostic
+              </h5>
+              <p className="text-xs text-white/50 leading-relaxed italic">
+                The current system recovery rate of <strong>{riskAnalysis.recoveryRate.toFixed(1)}%</strong> indicates 
+                {riskAnalysis.overdueIncomingSum > 0 
+                  ? ` an urgent need for auditing overdue incoming instruments totaling ${formatCurrency(riskAnalysis.overdueIncomingSum, currency)}.`
+                  : " a healthy collection pipeline with no critical overdue incoming assets currently detected."}
+              </p>
+            </div>
+
+            {/* 2. Exposure Advisory */}
+            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-emerald-500/30 transition-all duration-500 flex flex-col">
+              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> 
+                Exposure Advisory
+              </h5>
+              <p className="text-xs text-white/50 leading-relaxed italic">
+                {riskAnalysis.topExposureEntityName 
+                  ? `Counterparty concentration is visible for ${riskAnalysis.topExposureEntityName} representing ${riskAnalysis.topExposurePercentage.toFixed(1)}% of pending capital. We advise a risk balancing strategy.`
+                  : "Exposure is well-distributed across your counterparties. No single node poses a systemic dependency at this moment."}
+              </p>
+            </div>
+
+            {/* 3. Recommandation IA - Integrated here */}
+            <div className="p-8 rounded-[14px] bg-black/60 border border-white/5 hover:border-amber-500/30 transition-all duration-500 flex flex-col">
+              <h5 className="font-black text-[10px] uppercase tracking-widest text-white/80 mb-4 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> 
+                AI Strategic Recommendation
+              </h5>
+              <p className="text-xs text-white/50 leading-relaxed italic">
                 {riskAnalysis.riskScore > 30 
-                  ? "Alerte : Une fragilité de liquidité est détectée. Priorisez la diversification des banques et lanceز des actions de recouvrement pour les impayés."
-                  : "Stabilité confirmée. Votre profil de risque est optimal. Maintenez vos processus actuels de vérification des émetteurs."}
-             </p>
+                  ? "Alerte : Une fragilité de liquidité est détectée. Priorisez la diversification des banques et lancez des actions de recouvrement immédiates pour les impayés identifiés."
+                  : "Stabilité confirmée. Votre profil de risque est optimal. Maintenez vos processus actuels de vérification des émetteurs et surveillez les seuils critiques."}
+              </p>
+              <div className="mt-auto pt-4 flex items-center gap-2 text-[9px] font-black text-amber-500/50 uppercase tracking-widest">
+                <Sparkles size={12} /> Generated by Core Logic
+              </div>
+            </div>
           </div>
         </div>
       </div>
