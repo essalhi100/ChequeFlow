@@ -72,7 +72,7 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
           id: `high-${c.id}`,
           type: 'high_value',
           level: RiskLevel.MEDIUM,
-          description: `Instrument haute valeur sous surveillance`,
+          description: `Instrument haute valeur #${c.check_number}`,
           amount: c.amount,
           relatedId: c.id
         });
@@ -109,7 +109,7 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
     const Icon = style.icon;
 
     return (
-      <div className={`p-6 rounded-[16px] border ${style.border} ${style.bg} flex items-center justify-between group transition-all hover:bg-white/[0.04]`}>
+      <div className={`p-6 rounded-[16px] border ${style.border} ${style.bg} flex items-center justify-between group transition-all hover:bg-white/[0.04] animate-in fade-in slide-in-from-left-2 duration-300`}>
         <div className="flex items-center gap-5">
           <div className={`p-3 rounded-[12px] bg-white/[0.03] ${style.text}`}>
             <Icon size={24} />
@@ -123,12 +123,16 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => risk.relatedId && onViewCheck?.(risk.relatedId)}
-            className="text-[10px] font-bold text-white/20 uppercase tracking-widest hover:text-white transition-colors"
-          >
-            Détails
-          </button>
+          {risk.relatedId ? (
+            <button 
+              onClick={() => onViewCheck?.(risk.relatedId!)}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-[10px] text-[10px] font-bold text-white uppercase tracking-widest transition-all border border-white/5"
+            >
+              Détails
+            </button>
+          ) : (
+             <span className="text-[9px] font-black text-white/10 uppercase italic">Agrégat</span>
+          )}
           <ChevronRight size={18} className="text-white/10" />
         </div>
       </div>
@@ -161,7 +165,6 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
         </div>
       </div>
 
-      {/* SUMMARY DASHBOARD */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="glass-card p-8 rounded-[20px] border-white/5 bg-gradient-to-br from-white/[0.02] to-transparent">
           <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Capital à Risque</p>
@@ -188,7 +191,6 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* RISK FEED */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white/60">Journal des Anomalies</h4>
@@ -213,7 +215,6 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
           </div>
         </div>
 
-        {/* CLASSIFICATION & RECOMMENDATION */}
         <div className="space-y-6">
           <div className="glass-card p-8 rounded-[20px] border-white/5">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-8">Classification Stratégique</h4>
@@ -221,7 +222,7 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
               {[
                 { label: 'Chèques Retournés', count: riskAnalysis.risks.filter(r => r.type === 'returned').length, color: 'bg-rose-500' },
                 { label: 'Maturité Dépassée', count: riskAnalysis.risks.filter(r => r.type === 'overdue').length, color: 'bg-rose-400' },
-                { label: 'Flux Haute Valeور', count: riskAnalysis.risks.filter(r => r.type === 'high_value').length, color: 'bg-amber-400' },
+                { label: 'Flux Haute Valeur', count: riskAnalysis.risks.filter(r => r.type === 'high_value').length, color: 'bg-amber-400' },
                 { label: 'Concentration Bancaire', count: riskAnalysis.risks.filter(r => r.type === 'concentration').length, color: 'bg-blue-400' }
               ].map((item, i) => (
                 <div key={i}>
@@ -247,7 +248,7 @@ const RiskIntelligence: React.FC<RiskIntelligenceProps> = ({ checks, currency, h
              </div>
              <p className="text-xs text-white/60 leading-relaxed font-medium italic">
                 {riskAnalysis.riskScore > 30 
-                  ? "Alerte : Une fragilité de liquidité est détectée. Priorisez la diversification des banques et lancez des actions de recouvrement pour les impayés."
+                  ? "Alerte : Une fragilité de liquidité est détectée. Priorisez la diversification des banques et lanceز des actions de recouvrement pour les impayés."
                   : "Stabilité confirmée. Votre profil de risque est optimal. Maintenez vos processus actuels de vérification des émetteurs."}
              </p>
           </div>
