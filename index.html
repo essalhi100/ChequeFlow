@@ -9,6 +9,14 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏦</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      // Shim process for libraries that expect it (especially SDKs)
+      window.process = { 
+        env: {
+          NODE_ENV: 'production'
+        } 
+      };
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -61,13 +69,14 @@
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "recharts": "https://esm.sh/recharts@^3.7.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.48.1"
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0?deps=react@19.0.0",
+    "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
+    "@google/genai": "https://esm.sh/@google/genai@1.38.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.48.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>

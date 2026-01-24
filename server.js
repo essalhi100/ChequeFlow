@@ -7,13 +7,13 @@ const { transform } = require('sucrase');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// تسجيل الطلبات للمساعدة في تصحيح الأخطاء (Logging)
+// Request logging for debugging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// 1. إعدادات CORS ورؤوس الأمان
+// 1. CORS & Security Headers
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -24,7 +24,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 2. تحويل ملفات TypeScript و JSX فورياً (On-the-fly Transpilation)
+// 2. On-the-fly Transpilation (TypeScript/JSX)
 app.use((req, res, next) => {
   const ext = path.extname(req.path);
   if (ext === '.ts' || ext === '.tsx') {
@@ -33,7 +33,6 @@ app.use((req, res, next) => {
     if (fs.existsSync(filePath)) {
       try {
         const content = fs.readFileSync(filePath, 'utf8');
-        // تحويل الكود باستخدام sucrase
         const result = transform(content, {
           transforms: ['typescript', 'jsx'],
           production: true,
@@ -41,8 +40,19 @@ app.use((req, res, next) => {
           jsxFragmentPragma: 'React.Fragment'
         });
         
+        let code = result.code;
+
+        // Inject essential environment variables into the client-side code.
+        // We use a broader regex to replace process.env occurrences.
+        const envKeys = ['API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+        envKeys.forEach(key => {
+          const val = process.env[key] || '';
+          const regex = new RegExp(`process\\.env\\.${key}`, 'g');
+          code = code.replace(regex, JSON.stringify(val));
+        });
+        
         res.set('Content-Type', 'application/javascript');
-        return res.send(result.code);
+        return res.send(code);
       } catch (err) {
         console.error(`Transpilation error for ${req.path}:`, err);
         res.set('Content-Type', 'application/javascript');
@@ -50,19 +60,17 @@ app.use((req, res, next) => {
       }
     } else {
       console.warn(`File not found: ${filePath}`);
-      // نرسل 404 صريح بدلاً من تمريره للـ SPA لتجنب خطأ الـ Syntax
       return res.status(404).set('Content-Type', 'text/plain').send('File not found');
     }
   }
   next();
 });
 
-// 3. خدمة الملفات الثابتة
+// 3. Static Files
 app.use(express.static(__dirname));
 
-// 4. معالجة مسارات SPA (Single Page Application)
+// 4. SPA Routing
 app.get('*', (req, res) => {
-  // نمنع إرسال index.html إذا كان الطلب يبحث عن أصل (Asset) غير موجود
   if (req.path.includes('.') && !req.path.endsWith('.html')) {
     return res.status(404).send('Resource not found');
   }
