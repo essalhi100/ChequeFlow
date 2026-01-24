@@ -30,8 +30,8 @@ const Auth: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-[#05070a] p-6 font-['Inter']">
       <div className="glass-card w-full max-w-[400px] p-10 rounded-[16px] border-white/5 shadow-2xl">
         <div className="flex flex-col items-center mb-10 text-center">
-          <div className="w-14 h-14 rounded-[12px] bg-gold flex items-center justify-center gold-glow mb-6">
-            <ShieldCheck className="text-black" size={28} />
+          <div className="w-14 h-14 rounded-[12px] bg-transparent border border-gold/30 flex items-center justify-center mb-6 shadow-2xl shadow-gold/5">
+            <ShieldCheck className="text-gold" size={28} />
           </div>
           <h1 className="text-2xl font-bold italic tracking-tight mb-1 text-white uppercase">FINANSSE PRO</h1>
           <p className="text-white/30 text-[9px] uppercase tracking-[0.2em] font-bold">

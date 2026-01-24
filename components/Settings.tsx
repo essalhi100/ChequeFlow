@@ -54,9 +54,9 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
           
           <div className="flex flex-col items-center gap-6 p-8 bg-black/40 rounded-[18px] border border-white/5 relative group">
              <div className="relative">
-               <div className="w-32 h-32 rounded-[20px] overflow-hidden bg-white/5 border-2 border-dashed border-white/10 group-hover:border-gold/30 transition-all flex items-center justify-center">
+               <div className="w-32 h-32 rounded-[20px] overflow-hidden bg-transparent border-2 border-dashed border-white/10 group-hover:border-gold/30 transition-all flex items-center justify-center shadow-inner">
                   {localSettings.logo_url ? (
-                    <img src={localSettings.logo_url} className="w-full h-full object-cover" alt="Logo" />
+                    <img src={localSettings.logo_url} className="w-full h-full object-contain" alt="Logo" />
                   ) : (
                     <div className="text-white/10">
                       <Camera size={32} />

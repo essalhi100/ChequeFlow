@@ -52,11 +52,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className={`p-6 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} mb-4 relative`}>
         {!isCollapsed && (
           <div className="flex items-center gap-3 overflow-hidden animate-in fade-in slide-in-from-left-2 duration-500">
-            <div className="w-9 h-9 rounded-[10px] bg-gold flex items-center justify-center gold-glow overflow-hidden shrink-0">
+            <div className="w-9 h-9 rounded-[10px] bg-transparent border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
               ) : (
-                <ShieldCheck className="text-black" size={20} />
+                <ShieldCheck className="text-gold" size={20} />
               )}
             </div>
             <div className="overflow-hidden">
