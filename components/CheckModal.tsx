@@ -79,19 +79,19 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
         
         <div className="w-full md:w-2/5 bg-black/40 border-r border-white/5 flex flex-col">
           <div className="p-8 border-b border-white/5">
-            <h3 className="text-xl font-black text-white italic">AI SCANNER</h3>
-            <p className="text-white/40 text-xs">Neural Data Extraction</p>
+            <h3 className="text-xl font-black text-white italic">SCANNER IA</h3>
+            <p className="text-white/40 text-xs">Extraction de Données Neuronales</p>
           </div>
           
           <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
             {isProcessing ? (
               <div className="text-center space-y-4 animate-pulse">
                 <Loader2 className="w-16 h-16 text-gold animate-spin mx-auto" />
-                <p className="text-gold font-black text-xs uppercase tracking-widest">Analyzing Documents...</p>
+                <p className="text-gold font-black text-xs uppercase tracking-widest">Analyse des documents...</p>
               </div>
             ) : formData.image_url ? (
               <div className="relative w-full aspect-[16/9] rounded-[14px] overflow-hidden border-2 border-gold/20 shadow-2xl group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <img src={formData.image_url} className="w-full h-full object-cover" alt="Check" />
+                <img src={formData.image_url} className="w-full h-full object-cover" alt="Chèque" />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                   <Camera className="text-white" size={48} />
                 </div>
@@ -105,7 +105,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Upload className="text-white/20 group-hover:text-gold" />
                 </div>
-                <span className="text-xs font-black text-white/40 uppercase tracking-widest">Upload Check Image</span>
+                <span className="text-xs font-black text-white/40 uppercase tracking-widest">Charger l'image du chèque</span>
               </button>
             )}
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
@@ -117,8 +117,8 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <p className="text-[10px] text-emerald-400 font-black uppercase tracking-tighter">Security Protocol</p>
-                <p className="text-[11px] text-emerald-100/60 font-medium italic leading-none">AES-256 Active</p>
+                <p className="text-[10px] text-emerald-400 font-black uppercase tracking-tighter">Protocole de Sécurité</p>
+                <p className="text-[11px] text-emerald-100/60 font-medium italic leading-none">AES-256 Actif</p>
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
         <div className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="text-[22px] font-bold leading-[33px] italic tracking-tight">{initialData ? 'EDIT RECORD' : 'NEW VAULT ENTRY'}</h2>
+              <h2 className="text-[22px] font-bold leading-[33px] italic tracking-tight">{initialData ? 'MODIFIER L\'ENREGISTREMENT' : 'NOUVELLE ENTRÉE AU COFFRE'}</h2>
               <div className="h-1 w-12 bg-gold mt-1"></div>
             </div>
             <button type="button" onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/40 hover:text-white">
@@ -142,19 +142,19 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                  onClick={() => setFormData({...formData, type: CheckType.INCOMING})}
                  className={`py-4 rounded-[14px] border font-black text-[10px] uppercase tracking-widest transition-all ${formData.type === CheckType.INCOMING ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'}`}
                >
-                 Assets (Incoming)
+                 Actifs (Entrants)
                </button>
                <button 
                  type="button"
                  onClick={() => setFormData({...formData, type: CheckType.OUTGOING})}
                  className={`py-4 rounded-[14px] border font-black text-[10px] uppercase tracking-widest transition-all ${formData.type === CheckType.OUTGOING ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'}`}
                >
-                 Liabilities (Outgoing)
+                 Passifs (Sortants)
                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputWrapper label="Check Reference" icon={Fingerprint}>
+              <InputWrapper label="Référence du Chèque" icon={Fingerprint}>
                 <input 
                   ref={firstInputRef}
                   value={formData.check_number}
@@ -163,7 +163,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                   placeholder="00000000"
                 />
               </InputWrapper>
-              <InputWrapper label="Total Capital" icon={DollarSign}>
+              <InputWrapper label="Capital Total" icon={DollarSign}>
                 <input 
                   type="number"
                   step="any"
@@ -175,26 +175,26 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
               </InputWrapper>
             </div>
 
-            <InputWrapper label="Entity / Counterparty" icon={User}>
+            <InputWrapper label="Entité / Contrepartie" icon={User}>
               <input 
                 value={formData.entity_name}
                 onChange={e => setFormData({...formData, entity_name: e.target.value})}
                 className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none"
-                placeholder="Name of customer or provider"
+                placeholder="Nom du client ou fournisseur"
               />
             </InputWrapper>
 
-            <InputWrapper label="Financial Institution" icon={Building2}>
+            <InputWrapper label="Institution Financière" icon={Building2}>
               <input 
                 value={formData.bank_name}
                 onChange={e => setFormData({...formData, bank_name: e.target.value})}
                 className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none"
-                placeholder="Bank Name (e.g. CIH, BMCE)"
+                placeholder="Nom de la banque (ex: CIH, BMCE)"
               />
             </InputWrapper>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputWrapper label="Issue Date" icon={Calendar}>
+              <InputWrapper label="Date d'Émission" icon={Calendar}>
                 <input 
                   type="date"
                   value={formData.issue_date}
@@ -202,7 +202,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none [color-scheme:dark]"
                 />
               </InputWrapper>
-              <InputWrapper label="Maturity Date" icon={Calendar}>
+              <InputWrapper label="Date d'Échéance" icon={Calendar}>
                 <input 
                   type="date"
                   value={formData.due_date}
@@ -213,16 +213,16 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </div>
 
             <div className="space-y-1.5 group">
-              <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1 group-focus-within:text-gold transition-colors">Operational Status</label>
+              <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1 group-focus-within:text-gold transition-colors">Statut Opérationnel</label>
               <div className="relative rounded-[14px] border border-white/10 bg-white/5 transition-all duration-300 focus-within:border-gold/50 focus-within:bg-gold/[0.02]">
                 <select 
                   value={formData.status}
                   onChange={e => setFormData({...formData, status: e.target.value as CheckStatus})}
                   className="w-full bg-transparent border-none py-4 px-6 text-white text-sm font-semibold focus:outline-none appearance-none cursor-pointer"
                 >
-                  <option value={CheckStatus.PENDING} className="bg-slate-900">Pending Authorization</option>
-                  <option value={CheckStatus.PAID} className="bg-slate-900">Finalized / Paid</option>
-                  <option value={CheckStatus.RETURNED} className="bg-slate-900">Returned / Unpaid</option>
+                  <option value={CheckStatus.PENDING} className="bg-slate-900">En attente d'autorisation</option>
+                  <option value={CheckStatus.PAID} className="bg-slate-900">Finalisé / Payé</option>
+                  <option value={CheckStatus.RETURNED} className="bg-slate-900">Retourné / Impayé</option>
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 group-focus-within:text-gold">
                   <Receipt size={14} />
@@ -235,7 +235,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                 type="submit"
                 className="w-full py-5 bg-gold text-black rounded-[14px] font-black text-xs uppercase tracking-[0.2em] gold-glow hover:scale-[1.01] active:scale-95 transition-all shadow-xl"
               >
-                Sync to Database
+                Synchroniser avec la Base
               </button>
             </div>
           </form>

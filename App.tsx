@@ -55,13 +55,13 @@ const App: React.FC = () => {
     const today = new Date();
     checks.forEach(c => {
       if (c.status === CheckStatus.RETURNED) {
-        addNotification('Alerte : Chèque Retourné', `Le chèque #${c.check_number} a été rejeté.`, 'danger', c.id);
+        addNotification('Alerte : Chèque Retourné', `L'instrument #${c.check_number} a été rejeté.`, 'danger', c.id);
       }
       if (c.status === CheckStatus.PENDING && new Date(c.due_date) < today) {
         addNotification('Risque : Échéance Dépassée', `L'instrument #${c.check_number} est arrivé à maturité.`, 'warning', c.id);
       }
       if (c.amount >= (settings.high_value_threshold || 50000) && c.status === CheckStatus.PENDING) {
-        addNotification('Notification : Haute Valeur', `Opération critique de ${c.amount} détectée.`, 'info', c.id);
+        addNotification('Signal : Haute Valeur', `Opération critique de ${c.amount} détectée.`, 'info', c.id);
       }
     });
   }, [checks, addNotification, settings.high_value_threshold]);
@@ -156,7 +156,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteCheck = async (id: string) => {
-    if (window.confirm('Voulez-vous vraiment supprimer cet enregistrement ?')) {
+    if (window.confirm('Confirmez-vous la suppression de cet enregistrement ?')) {
       setChecks(prev => prev.filter(c => c.id !== id));
       if (isConfigured) {
         await supabase.from('checks').delete().eq('id', id);
@@ -170,7 +170,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
        <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-gold animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 italic">Synchronizing Vault...</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 italic">Synchronisation du Coffre...</p>
        </div>
     </div>
   );

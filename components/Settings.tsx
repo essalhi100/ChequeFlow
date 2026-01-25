@@ -12,7 +12,6 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
   const [localSettings, setLocalSettings] = React.useState(settings);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync local state when global settings change (e.g., after loading from server)
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
@@ -32,8 +31,8 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
     <div className="max-w-4xl mx-auto space-y-10 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
-          <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">PRÉFÉRENCES SYSTÈME</h2>
-          <p className="text-white/40 text-sm">Contrôle de l'infrastructure et des paramètres de sécurité</p>
+          <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Préférences Système</h2>
+          <p className="text-white/40 text-sm">Contrôle de l'infrastructure et sécurité</p>
         </div>
         <button 
           onClick={() => onSave(localSettings)}
@@ -45,11 +44,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* BRAND IDENTITY */}
         <div className="glass-card p-8 rounded-[20px] border-white/5 space-y-8">
           <div className="flex items-center gap-4 text-gold border-b border-white/5 pb-4">
             <Building size={22} />
-            <h3 className="font-black text-[10px] uppercase tracking-[0.2em]">Identité Visuelle</h3>
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em]">Identité de Marque</h3>
           </div>
           
           <div className="flex flex-col items-center gap-6 p-8 bg-black/40 rounded-[18px] border border-white/5 relative group">
@@ -72,7 +70,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
                <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" />
              </div>
              <div className="text-center">
-               <p className="text-[12px] font-bold text-white mb-1">Logo Corporatif</p>
+               <p className="text-[12px] font-bold text-white mb-1">Logo d'Entreprise</p>
                <p className="text-[10px] text-white/20 uppercase tracking-widest font-medium">PNG / SVG Transparent</p>
              </div>
           </div>
@@ -89,16 +87,15 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
           </div>
         </div>
 
-        {/* FINANCIAL INTELLIGENCE */}
         <div className="glass-card p-8 rounded-[20px] border-white/5 space-y-8">
            <div className="flex items-center gap-4 text-gold border-b border-white/5 pb-4">
             <Globe size={22} />
-            <h3 className="font-black text-[10px] uppercase tracking-[0.2em]">Paramètres de Risque</h3>
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em]">Intelligence Financière</h3>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-white/30 tracking-widest ml-1">Devise de Référence</label>
+              <label className="text-[10px] font-black uppercase text-white/30 tracking-widest ml-1">Devise Locale</label>
               <div className="grid grid-cols-3 gap-3">
                 {[Currency.EUR, Currency.MAD, Currency.USD].map(curr => (
                   <button 
@@ -126,7 +123,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
                    className="w-full bg-white/5 border border-white/10 rounded-[14px] py-4 pl-12 pr-6 text-sm font-bold focus:border-gold/50 focus:outline-none transition-all text-white"
                  />
                </div>
-               <p className="text-[10px] text-white/20 italic">Déclenche un risque "Moyen" pour tout instrument supérieur à ce montant.</p>
+               <p className="text-[10px] text-white/20 italic">Déclenche un signal de risque pour tout instrument supérieur à ce montant.</p>
             </div>
 
             <div className="space-y-2">
@@ -151,7 +148,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSave }) => {
                 <span className="text-[10px] font-black uppercase tracking-widest">Protocoles de Sécurité</span>
              </div>
              <p className="text-[11px] text-white/40 leading-relaxed italic font-medium">
-               Vos paramètres de seuils sont chiffrés et stockés dans votre environnement sécurisé.
+               Vos seuils sont chiffrés et stockés dans votre environnement sécurisé.
              </p>
           </div>
         </div>
