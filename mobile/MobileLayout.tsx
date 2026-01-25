@@ -28,6 +28,14 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<Check | null>(null);
 
+  const handleViewDetails = (id: string) => {
+    const check = checks.find(c => c.id === id);
+    if (check) {
+      setEditingCheck(check);
+      setIsAddOpen(true);
+    }
+  };
+
   // Simplified content rendering for mobile
   const renderContent = () => {
     switch (activeTab) {
@@ -39,7 +47,14 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
           onMarkAsPaid={onMarkAsPaid}
         />
       );
-      case 'risks': return <MobileRisks checks={checks} currency={settings.currency} threshold={settings.high_value_threshold} />;
+      case 'risks': return (
+        <MobileRisks 
+          checks={checks} 
+          currency={settings.currency} 
+          threshold={settings.high_value_threshold} 
+          onViewCheck={handleViewDetails}
+        />
+      );
       default: return (
         <MobileDashboard 
           checks={checks} 
