@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck } from 'lucide-react';
+import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote } from 'lucide-react';
 import { Check, CheckType, CheckStatus } from '../types.ts';
 import { extractCheckData } from '../services/geminiService.ts';
 
@@ -31,10 +31,11 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
       bank_name: '',
       amount: 0,
       issue_date: new Date().toISOString().split('T')[0],
-      due_date: new Date().toISOString().split('T')[0],
+      due_date: '',
       entity_name: '',
       type: CheckType.INCOMING,
       status: CheckStatus.PENDING,
+      notes: '',
       image_url: '',
     }
   );
@@ -66,6 +67,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
           ...extracted,
           issue_date: extracted.issue_date || prev.issue_date,
           due_date: extracted.due_date || prev.due_date,
+          notes: extracted.notes || prev.notes,
         }));
       }
       setIsProcessing(false);
@@ -124,7 +126,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto">
+        <div className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto custom-scrollbar">
           <div className="flex items-center justify-between mb-10">
             <div>
               <h2 className="text-[22px] font-bold leading-[33px] italic tracking-tight">{initialData ? 'MODIFIER L\'ENREGISTREMENT' : 'NOUVELLE ENTRÉE AU COFFRE'}</h2>
@@ -163,6 +165,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                   placeholder="00000000"
                 />
               </InputWrapper>
+              
               <InputWrapper label="Capital Total" icon={DollarSign}>
                 <input 
                   type="number"
@@ -220,13 +223,28 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                   onChange={e => setFormData({...formData, status: e.target.value as CheckStatus})}
                   className="w-full bg-transparent border-none py-4 px-6 text-white text-sm font-semibold focus:outline-none appearance-none cursor-pointer"
                 >
-                  <option value={CheckStatus.PENDING} className="bg-slate-900">En attente d'autorisation</option>
-                  <option value={CheckStatus.PAID} className="bg-slate-900">Finalisé / Payé</option>
-                  <option value={CheckStatus.RETURNED} className="bg-slate-900">Retourné / Impayé</option>
+                  <option value={CheckStatus.PENDING} className="bg-slate-900">En attente</option>
+                  <option value={CheckStatus.PAID} className="bg-slate-900">Payé</option>
+                  <option value={CheckStatus.RETURNED} className="bg-slate-900">Impayé</option>
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 group-focus-within:text-gold">
                   <Receipt size={14} />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 group">
+              <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1 group-focus-within:text-gold transition-colors">Notes & Observations</label>
+              <div className="relative rounded-[14px] border border-white/10 bg-white/5 transition-all duration-300 focus-within:border-gold/50 focus-within:bg-gold/[0.02]">
+                <div className="absolute left-4 top-4 text-white/20 group-focus-within:text-gold transition-colors">
+                  <StickyNote size={18} />
+                </div>
+                <textarea 
+                  value={formData.notes || ''}
+                  onChange={e => setFormData({...formData, notes: e.target.value})}
+                  className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none min-h-[100px] resize-none"
+                  placeholder="Ajouter des détails sur cette transaction..."
+                />
               </div>
             </div>
 

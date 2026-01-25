@@ -51,6 +51,7 @@ export interface Check {
   entity_name: string;
   type: CheckType;
   status: CheckStatus;
+  notes?: string;
   image_url?: string;
   created_at: string;
 }

@@ -8,9 +8,9 @@ import RiskIntelligence from './components/RiskIntelligence.tsx';
 import Settings from './components/Settings.tsx';
 import CheckModal from './components/CheckModal.tsx';
 import Auth from './components/Auth.tsx';
-import { AppTab, Check, SystemSettings, Currency, CheckStatus, AppNotification } from './types.ts';
+import { AppTab, Check, SystemSettings, Currency, CheckStatus, AppNotification, CheckType } from './types.ts';
 import { supabase, isConfigured } from './supabase.ts';
-import { ShieldAlert, Loader2, Bell, X, CheckCheck } from 'lucide-react';
+import { ShieldAlert, Loader2, Bell, X, CheckCheck, Info } from 'lucide-react';
 
 const DEFAULT_SETTINGS: SystemSettings = {
   company_name: 'Luxury Assets Ltd',
@@ -21,22 +21,44 @@ const DEFAULT_SETTINGS: SystemSettings = {
 };
 
 const ADMIN_EMAIL = 'admin@apollo.com';
-const STORAGE_KEY = 'finansse_internal_db';
+const STORAGE_KEY = 'finansse_internal_db_v2'; // Updated key to ensure clean start if needed
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('dash');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [checks, setChecks] = useState<Check[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [checks, setChecks] = useState<Check[]>([]);
   const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<Check | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 1. Load and Clean Internal Database (LocalStorage)
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Ensure absolutely no "usage" or other ghost properties exist
+        const cleaned = parsed.map((c: any) => {
+          const { usage, ...rest } = c;
+          return rest;
+        });
+        setChecks(cleaned);
+      } catch (e) {
+        console.error("Local load error", e);
+        setChecks([]);
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  // 2. Persist to LocalStorage whenever checks change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(checks));
+  }, [checks]);
 
   const addNotification = useCallback((title: string, message: string, type: 'danger' | 'warning' | 'info', linkId?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -49,9 +71,8 @@ const App: React.FC = () => {
     });
   }, []);
 
+  // Operational Alerts Monitoring
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(checks));
-    
     const today = new Date();
     checks.forEach(c => {
       if (c.status === CheckStatus.RETURNED) {
@@ -66,14 +87,11 @@ const App: React.FC = () => {
     });
   }, [checks, addNotification, settings.high_value_threshold]);
 
+  // Supabase Auth and Sync
   useEffect(() => {
-    if (!isConfigured) {
-      setLoading(false);
-      return;
-    }
+    if (!isConfigured) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
@@ -87,7 +105,15 @@ const App: React.FC = () => {
       .from('checks')
       .select('*')
       .order('created_at', { ascending: false });
-    if (!error && checksData) setChecks(checksData);
+    
+    if (!error && checksData) {
+      // Clean incoming server data to strictly match our current interface
+      const validated = checksData.map((serverCheck: any) => {
+        const { usage, user_id, ...validKeys } = serverCheck;
+        return validKeys as Check;
+      });
+      setChecks(validated);
+    }
     
     const { data: settingsData } = await supabase.from('system_settings').select('*').maybeSingle();
     if (settingsData) {
@@ -102,49 +128,71 @@ const App: React.FC = () => {
   const handleSaveSettings = async (newSettings: SystemSettings) => {
     setSettings(newSettings);
     if (isConfigured && session) {
-      const { error } = await supabase.from('system_settings').upsert({
+      await supabase.from('system_settings').upsert({
         ...newSettings,
         user_id: session.user.id
       });
-      if (!error) {
-        addNotification('Système', 'Paramètres de sécurité synchronisés.', 'info');
-      }
+      addNotification('Système', 'Paramètres de sécurité synchronisés.', 'info');
     }
   };
 
   const handleSaveCheck = async (checkData: Partial<Check>) => {
     if (!session) return;
+    
+    // STRICT SCHEMA: Define only existing columns in the current database structure
+    const cleanedData = {
+      check_number: checkData.check_number || '000000',
+      bank_name: checkData.bank_name || 'Inconnue',
+      amount: Number(checkData.amount) || 0,
+      issue_date: checkData.issue_date || new Date().toISOString().split('T')[0],
+      due_date: checkData.due_date || new Date().toISOString().split('T')[0],
+      entity_name: checkData.entity_name || 'Inconnu',
+      type: checkData.type || CheckType.INCOMING,
+      status: checkData.status || CheckStatus.PENDING,
+      notes: checkData.notes || '',
+      image_url: checkData.image_url || null
+    };
+
     const tempId = editingCheck ? editingCheck.id : Math.random().toString(36).substr(2, 9);
     const optimisticCheck: Check = {
       id: tempId,
-      created_at: new Date().toISOString(),
-      ...(editingCheck || {}),
-      ...checkData,
+      created_at: editingCheck ? editingCheck.created_at : new Date().toISOString(),
+      ...cleanedData,
     } as Check;
 
+    // Optimistic Update for UI
     if (editingCheck) {
       setChecks(prev => prev.map(c => c.id === editingCheck.id ? optimisticCheck : c));
     } else {
       setChecks(prev => [optimisticCheck, ...prev]);
     }
+
     setIsModalOpen(false);
     setEditingCheck(null);
 
+    // External Database Sync
     if (isConfigured) {
-      if (editingCheck) {
-        await supabase.from('checks').update({ ...checkData }).eq('id', editingCheck.id);
-      } else {
-        const { data } = await supabase.from('checks').insert({ ...checkData, user_id: session.user.id }).select().single();
-        if (data) setChecks(prev => prev.map(c => c.id === tempId ? data : c));
+      try {
+        if (editingCheck) {
+          const { error } = await supabase.from('checks').update(cleanedData).eq('id', editingCheck.id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from('checks').insert({ 
+            ...cleanedData, 
+            user_id: session.user.id 
+          }).select().single();
+          
+          if (!error && data) {
+            const { user_id, ...rest } = data;
+            setChecks(prev => prev.map(c => c.id === tempId ? (rest as Check) : c));
+          } else if (error) {
+            throw error;
+          }
+        }
+      } catch (err) {
+        console.error("Supabase Save Error:", err);
+        addNotification('Erreur Base', 'La synchronisation a échoué. Les données restent locales.', 'danger');
       }
-    }
-  };
-
-  const handleViewCheckById = (id: string) => {
-    const check = checks.find(c => c.id === id);
-    if (check) {
-      setEditingCheck(check);
-      setIsModalOpen(true);
     }
   };
 
@@ -170,7 +218,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
        <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-gold animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 italic">Synchronisation du Coffre...</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 italic">Initialisation du Système...</p>
        </div>
     </div>
   );
@@ -191,7 +239,8 @@ const App: React.FC = () => {
         setIsCollapsed={setIsSidebarCollapsed}
       />
       
-      <main className="flex-1 overflow-y-auto h-screen relative">
+      <main className="flex-1 overflow-y-auto h-screen relative custom-scrollbar">
+        {/* Header with Notifications */}
         <div className="sticky top-0 z-40 p-8 flex items-center justify-end pointer-events-none">
           <div className="relative pointer-events-auto">
             <button 
@@ -207,35 +256,30 @@ const App: React.FC = () => {
             </button>
 
             {isNotifOpen && (
-              <div className="absolute right-0 mt-4 w-96 glass-card rounded-[20px] border-white/10 shadow-2xl p-6 animate-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
-                  <h5 className="text-[11px] font-black uppercase tracking-widest text-white/40">Signaux de Sécurité</h5>
-                  <button onClick={() => setNotifications(notifications.map(n => ({...n, status: 'read'})))} className="text-[10px] font-bold text-gold uppercase tracking-tight flex items-center gap-1.5 hover:opacity-80">
-                     <CheckCheck size={12} /> Tout lire
-                  </button>
+              <div className="absolute right-0 mt-4 w-96 glass-card rounded-[20px] border-white/10 shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-300">
+                <div className="p-5 border-b border-white/5 flex items-center justify-between">
+                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Flux d'Alertes</h4>
+                  <button onClick={() => setNotifications([])} className="text-[9px] font-bold text-rose-400 hover:text-rose-300 transition-colors">Nettoyer</button>
                 </div>
-                
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-2">
                   {notifications.length > 0 ? (
                     notifications.map(n => (
-                      <div key={n.id} className={`p-4 rounded-[16px] border transition-all ${n.status === 'new' ? 'bg-white/[0.03] border-white/10' : 'bg-transparent border-white/5 opacity-50'}`}>
-                         <div className="flex items-start gap-4">
-                            <div className={`p-2 rounded-full mt-0.5 ${n.type === 'danger' ? 'bg-rose-500/20 text-rose-500' : n.type === 'warning' ? 'bg-amber-500/20 text-amber-500' : 'bg-blue-500/20 text-blue-500'}`}>
-                               <ShieldAlert size={14} />
-                            </div>
-                            <div className="flex-1">
-                               <p className="text-[12px] font-bold text-white mb-0.5">{n.title}</p>
-                               <p className="text-[10px] font-medium text-white/40 leading-relaxed">{n.message}</p>
-                            </div>
-                            <button onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))} className="p-1 text-white/10 hover:text-white">
-                               <X size={14} />
-                            </button>
-                         </div>
+                      <div key={n.id} className="p-4 rounded-[12px] hover:bg-white/[0.02] transition-colors mb-1 group relative">
+                        <div className="flex items-start gap-4">
+                          <div className={`p-2 rounded-lg ${n.type === 'danger' ? 'bg-rose-500/10 text-rose-400' : n.type === 'warning' ? 'bg-amber-500/10 text-amber-400' : 'bg-gold/10 text-gold'}`}>
+                            {n.type === 'danger' ? <ShieldAlert size={14} /> : <Info size={14} />}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[12px] font-bold text-white mb-0.5">{n.title}</p>
+                            <p className="text-[10px] text-white/40 font-medium leading-relaxed">{n.message}</p>
+                          </div>
+                        </div>
                       </div>
                     ))
                   ) : (
-                    <div className="py-12 text-center">
-                       <p className="text-[10px] font-black text-white/10 uppercase tracking-widest">Aucun signal détecté</p>
+                    <div className="py-12 text-center opacity-20">
+                      <CheckCheck size={40} className="mx-auto mb-3" />
+                      <p className="text-[10px] font-black uppercase tracking-widest italic">Aucun incident critique</p>
                     </div>
                   )}
                 </div>
@@ -244,32 +288,42 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-8 md:px-12 pb-24 -mt-10">
-          {activeTab === 'dash' && <Dashboard checks={checks} currency={settings.currency} onTabChange={setActiveTab as any} isAdmin={isAdmin} />}
+        <div className="px-8 pb-12 max-w-7xl mx-auto">
+          {activeTab === 'dash' && <Dashboard checks={checks} currency={settings.currency} onTabChange={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'checks' && (
             <CheckList 
               checks={checks} 
               currency={settings.currency} 
-              onAdd={() => setIsModalOpen(true)} 
-              onEdit={(check) => {
-                setEditingCheck(check);
-                setIsModalOpen(true);
-              }} 
-              onDelete={handleDeleteCheck} 
-              onMarkAsPaid={handleMarkAsPaid} 
-              isAdmin={isAdmin} 
+              onAdd={() => { setEditingCheck(null); setIsModalOpen(true); }} 
+              onEdit={(c) => { setEditingCheck(c); setIsModalOpen(true); }}
+              onDelete={handleDeleteCheck}
+              onMarkAsPaid={handleMarkAsPaid}
+              isAdmin={isAdmin}
             />
           )}
           {activeTab === 'performance' && <Reports checks={checks} currency={settings.currency} />}
-          {activeTab === 'risks' && <RiskIntelligence checks={checks} currency={settings.currency} highValueThreshold={settings.high_value_threshold || 50000} onViewCheck={handleViewCheckById} />}
-          {activeTab === 'parameters' && (
-            <div className="animate-in fade-in duration-700 min-h-[600px]">
-              <Settings settings={settings} onSave={handleSaveSettings} />
-            </div>
+          {activeTab === 'risks' && (
+            <RiskIntelligence 
+              checks={checks} 
+              currency={settings.currency} 
+              highValueThreshold={settings.high_value_threshold} 
+              onViewCheck={(id) => {
+                const c = checks.find(ch => ch.id === id);
+                if (c) { setEditingCheck(c); setIsModalOpen(true); }
+              }}
+            />
           )}
+          {activeTab === 'parameters' && <Settings settings={settings} onSave={handleSaveSettings} />}
         </div>
       </main>
-      {isModalOpen && <CheckModal onClose={() => { setIsModalOpen(false); setEditingCheck(null); }} onSave={handleSaveCheck} initialData={editingCheck} />}
+
+      {isModalOpen && (
+        <CheckModal 
+          onClose={() => { setIsModalOpen(false); setEditingCheck(null); }} 
+          onSave={handleSaveCheck}
+          initialData={editingCheck}
+        />
+      )}
     </div>
   );
 };

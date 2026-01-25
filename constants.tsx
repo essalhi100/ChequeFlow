@@ -12,8 +12,6 @@ export const COLORS = {
 
 /**
  * Formats currency amounts. 
- * By default, it hides the symbol (MAD, $, €) for a cleaner UI.
- * Pass includeSymbol = true only when exporting data.
  */
 export const formatCurrency = (amount: number, currency: Currency, includeSymbol: boolean = false) => {
   const locales: Record<Currency, string> = {
@@ -38,7 +36,7 @@ export const getStatusBadge = (status: CheckStatus) => {
     case CheckStatus.PAID:
       return <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Payé</span>;
     case CheckStatus.RETURNED:
-      return <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20">Retourné</span>;
+      return <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20">Impayé</span>;
     case CheckStatus.PENDING:
       return <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/20">En attente</span>;
     default:

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, Calendar, Filter, CheckCircle2, Pencil } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Pencil } from 'lucide-react';
 import { Check, Currency, CheckType, CheckStatus } from '../types.ts';
 import { formatCurrency, getStatusBadge, getTypeBadge } from '../constants.tsx';
 
@@ -18,8 +18,10 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | CheckStatus>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | CheckType>('all');
 
   const isToday = (dateString: string) => {
+    if (!dateString) return false;
     const today = new Date();
     const date = new Date(dateString);
     return date.getDate() === today.getDate() &&
@@ -30,13 +32,15 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
   const filteredChecks = checks.filter(c => {
     const matchesSearch = 
       c.entity_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      c.check_number.includes(searchTerm);
+      c.check_number.includes(searchTerm) ||
+      (c.notes && c.notes.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+    const matchesType = typeFilter === 'all' || c.type === typeFilter;
     let matchesDate = true;
     if (dateFilter !== 'all') {
       if (dateFilter === 'today') matchesDate = isToday(c.due_date);
     }
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
 
   return (
@@ -58,24 +62,28 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
           <input 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher par numéro ou entité..."
+            placeholder="Rechercher par numéro, entité ou ملاحظات..."
             className="w-full bg-[#0a0d18] border border-white/5 rounded-[12px] py-3 pl-11 pr-4 text-xs font-medium focus:outline-none focus:border-gold/20 transition-all placeholder:text-white/10 text-white"
           />
         </div>
 
         <div className="flex items-center gap-1 bg-[#0a0d18] p-1 rounded-[12px] border border-white/5 w-full lg:w-auto">
-          {['all', 'today', 'week', 'month'].map((filter) => (
+          {[
+            { id: 'all', label: 'Tous' },
+            { id: CheckType.INCOMING, label: 'Entrant' },
+            { id: CheckType.OUTGOING, label: 'Sortant' }
+          ].map((u) => (
             <button 
-              key={filter}
-              onClick={() => setDateFilter(filter as any)} 
-              className={`px-4 py-2 rounded-[10px] text-[9px] font-bold uppercase tracking-tight transition-all ${dateFilter === filter ? 'bg-gold text-black' : 'text-white/30 hover:text-white/60'}`}
+              key={u.id}
+              onClick={() => setTypeFilter(u.id as any)} 
+              className={`px-4 py-2 rounded-[10px] text-[9px] font-bold uppercase tracking-tight transition-all ${typeFilter === u.id ? 'bg-gold text-black shadow-lg shadow-gold/20' : 'text-white/30 hover:text-white/60'}`}
             >
-              {filter === 'all' ? 'Tout' : filter === 'today' ? 'Auj.' : filter === 'week' ? 'Sem.' : 'Mois'}
+              {u.label}
             </button>
           ))}
         </div>
 
-        <div className="relative w-full lg:w-auto min-w-[180px]">
+        <div className="relative w-full lg:w-auto min-w-[150px]">
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -83,8 +91,8 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
           >
             <option value="all">Statuts: Tous</option>
             <option value={CheckStatus.PENDING}>En attente</option>
-            <option value={CheckStatus.PAID}>Finalisé</option>
-            <option value={CheckStatus.RETURNED}>Retourné</option>
+            <option value={CheckStatus.PAID}>Payé</option>
+            <option value={CheckStatus.RETURNED}>Impayé</option>
           </select>
         </div>
       </div>
@@ -98,7 +106,7 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">Échéance</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">Bénéficiaire/Émetteur</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">Montant</th>
-                <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold text-center">Flux</th>
+                <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold text-center">Type</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold text-center">État</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold text-right">Actions</th>
               </tr>
@@ -106,14 +114,23 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
             <tbody className="divide-y divide-white/5">
               {filteredChecks.map((check) => (
                 <tr key={check.id} className="hover:bg-white/[0.015] transition-colors group">
-                  <td className="px-6 py-4 text-[11px] font-medium text-white/40">{check.check_number}</td>
+                  <td className="px-6 py-4 text-[11px] font-medium text-white/40">
+                    {check.check_number}
+                  </td>
                   <td className="px-6 py-4">
                     <span className="text-[11px] font-semibold text-white/60">
-                      {new Date(check.due_date).toLocaleDateString('fr-FR')}
+                      {check.due_date ? new Date(check.due_date).toLocaleDateString('fr-FR') : '---'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-[12px] font-bold text-white/80">{check.entity_name}</td>
-                  <td className="px-6 py-4 text-[12px] font-bold text-white">{formatCurrency(check.amount, currency)}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-[12px] font-bold text-white/80">{check.entity_name}</span>
+                      <span className="text-[9px] text-white/20 uppercase tracking-widest">{check.bank_name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-[12px] font-bold text-white">{formatCurrency(check.amount, currency)}</span>
+                  </td>
                   <td className="px-6 py-4 text-center">{getTypeBadge(check.type)}</td>
                   <td className="px-6 py-4 text-center">{getStatusBadge(check.status)}</td>
                   <td className="px-6 py-4 text-right">
@@ -130,6 +147,13 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
                   </td>
                 </tr>
               ))}
+              {filteredChecks.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <p className="text-xs font-bold text-white/20 uppercase tracking-widest italic">Aucun instrument trouvé</p>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

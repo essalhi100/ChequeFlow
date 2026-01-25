@@ -2,12 +2,12 @@
 import React, { useState, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, AreaChart, Area, LineChart, Line, Legend
+  PieChart, Pie
 } from 'recharts';
 import { 
   Download, Printer, RefreshCw, FileText, TrendingUp, TrendingDown, 
-  AlertCircle, Calendar, Filter as FilterIcon, Search, Building2, 
-  ArrowUpRight, AlertTriangle, CheckCircle2, MoreHorizontal, ChevronDown,
+  AlertCircle, Building2, 
+  AlertTriangle, ChevronDown,
   Info
 } from 'lucide-react';
 import { Check, CheckStatus, Currency, CheckType } from '../types.ts';
@@ -24,7 +24,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
   const [statusFilter, setStatusFilter] = useState<'all' | CheckStatus>('all');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
 
-  // 1. CALCULATIONS
   const stats = useMemo(() => {
     const today = new Date();
     const soonThreshold = new Date();
@@ -35,10 +34,12 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
     const pending = checks.filter(c => c.status === CheckStatus.PENDING);
     const returned = checks.filter(c => c.status === CheckStatus.RETURNED);
     const dueSoon = pending.filter(c => {
+      if (!c.due_date) return false;
       const due = new Date(c.due_date);
       return due >= today && due <= soonThreshold;
     });
     const dueToday = pending.filter(c => {
+      if (!c.due_date) return false;
       const due = new Date(c.due_date);
       return due.toDateString() === today.toDateString();
     });
@@ -59,11 +60,10 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
     };
   }, [checks]);
 
-  // 2. CHART DATA PREPARATION
   const statusChartData = [
-    { name: 'Encaissé', value: checks.filter(c => c.status === CheckStatus.PAID).length, color: COLORS.success },
+    { name: 'Payé', value: checks.filter(c => c.status === CheckStatus.PAID).length, color: COLORS.success },
     { name: 'En attente', value: stats.countPending, color: '#f59e0b' },
-    { name: 'Retourné', value: stats.countReturned, color: COLORS.risk },
+    { name: 'Impayé', value: stats.countReturned, color: COLORS.risk },
   ].filter(d => d.value > 0);
 
   const monthlyData = useMemo(() => {
@@ -77,11 +77,13 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
 
     last6Months.forEach(m => {
       const inVal = checks.filter(c => {
+        if (!c.due_date) return false;
         const d = new Date(c.due_date);
         return d.getMonth() === m.month && d.getFullYear() === m.year && c.type === CheckType.INCOMING;
       }).reduce((sum, c) => sum + c.amount, 0);
 
       const outVal = checks.filter(c => {
+        if (!c.due_date) return false;
         const d = new Date(c.due_date);
         return d.getMonth() === m.month && d.getFullYear() === m.year && c.type === CheckType.OUTGOING;
       }).reduce((sum, c) => sum + c.amount, 0);
@@ -91,7 +93,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
     return data;
   }, [checks]);
 
-  // 3. TABLE FILTERING
   const filteredChecks = useMemo(() => {
     return checks.filter(c => {
       const matchesSearch = c.entity_name.toLowerCase().includes(searchTerm.toLowerCase()) || c.check_number.includes(searchTerm);
@@ -99,6 +100,7 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
       const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
       let matchesRange = true;
       if (dateRange.from && dateRange.to) {
+        if (!c.due_date) return false;
         const due = new Date(c.due_date);
         matchesRange = due >= new Date(dateRange.from) && due <= new Date(dateRange.to);
       }
@@ -125,13 +127,11 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Intelligence de Rapport</h2>
           <p className="text-white/40 text-sm">Audit en temps réel et analyse du capital</p>
         </div>
-        
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-[12px] border border-white/10">
             <input 
@@ -148,10 +148,10 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
               onChange={(e) => setDateRange({...dateRange, to: e.target.value})}
             />
           </div>
-          <button className="p-3 bg-white/5 hover:bg-white/10 rounded-[12px] text-white/60 transition-colors" title="Exporter PDF">
+          <button className="p-3 bg-white/5 hover:bg-white/10 rounded-[12px] text-white/60 transition-colors">
             <Download size={18} />
           </button>
-          <button className="p-3 bg-white/5 hover:bg-white/10 rounded-[12px] text-white/60 transition-colors" title="Imprimer">
+          <button className="p-3 bg-white/5 hover:bg-white/10 rounded-[12px] text-white/60 transition-colors">
             <Printer size={18} />
           </button>
           <button className="p-3 bg-gold text-black rounded-[12px] font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 transition-transform flex items-center gap-2 px-6">
@@ -160,7 +160,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
         </div>
       </div>
 
-      {/* INTELLIGENT ALERTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.countDueToday > 0 && (
           <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-[14px] flex items-center gap-4 animate-pulse">
@@ -180,14 +179,13 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
             </div>
             <div>
               <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Alerte de Risque Financier</p>
-              <p className="text-xs text-white/80 font-bold">{stats.countReturned} instruments retournés détectés dans le coffre.</p>
+              <p className="text-xs text-white/80 font-bold">{stats.countReturned} instruments impayés détectés dans le coffre.</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* SUMMARY STATS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         <SummaryCard 
           title="Total Entrants" 
           amount={stats.totalIncoming} 
@@ -213,15 +211,7 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
           subText="Attente de compensation"
         />
         <SummaryCard 
-          title="Échéance Proche" 
-          amount={stats.totalDueSoon} 
-          count={stats.countDueSoon} 
-          icon={Calendar} 
-          color="text-blue-500" 
-          subText="Maturité à < 7 jours"
-        />
-        <SummaryCard 
-          title="Retournés" 
+          title="Impayés" 
           amount={stats.totalReturned} 
           count={stats.countReturned} 
           icon={AlertTriangle} 
@@ -230,7 +220,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
         />
       </div>
 
-      {/* CHARTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 glass-card p-8 rounded-[14px] border-white/5">
           <div className="flex items-center justify-between mb-8">
@@ -297,13 +286,12 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
         </div>
       </div>
 
-      {/* ADVANCED FILTERING & DETAILED GRID */}
       <div className="glass-card rounded-[14px] border-white/5 overflow-hidden">
         <div className="p-8 border-b border-white/5 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <h4 className="text-lg font-bold">Matrice de Données Détaillée</h4>
             <div className="relative group min-w-[320px]">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold transition-colors" size={18} />
+              <Info className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold transition-colors" size={18} />
               <input 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -321,16 +309,16 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
              </div>
 
              <div className="relative min-w-[200px]">
-               <FilterIcon size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
+               <FileText size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
                <select 
                  value={statusFilter}
                  onChange={(e) => setStatusFilter(e.target.value as any)}
                  className="w-full bg-white/5 border border-white/10 rounded-[10px] py-2.5 pl-10 pr-4 text-[10px] font-black uppercase tracking-widest focus:outline-none appearance-none cursor-pointer"
                >
                  <option value="all">Tous les Statuts</option>
-                 <option value={CheckStatus.PAID}>Payés / Vérifiés</option>
+                 <option value={CheckStatus.PAID}>Payés</option>
                  <option value={CheckStatus.PENDING}>En attente</option>
-                 <option value={CheckStatus.RETURNED}>Retournés</option>
+                 <option value={CheckStatus.RETURNED}>Impayés</option>
                </select>
                <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
              </div>
@@ -346,7 +334,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
                 <th className="px-8 py-4 text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Dates</th>
                 <th className="px-8 py-4 text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Flux de Capital</th>
                 <th className="px-8 py-4 text-[10px] font-black text-white/30 uppercase tracking-[0.2em] text-center">Statut</th>
-                <th className="px-8 py-4 text-[10px] font-black text-white/30 uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -363,12 +350,12 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-black text-white/20 uppercase w-12">Émis:</span>
-                        <span className="text-[11px] font-bold text-white/60">{new Date(check.issue_date).toLocaleDateString()}</span>
+                        <span className="text-[11px] font-bold text-white/60">{check.issue_date ? new Date(check.issue_date).toLocaleDateString() : '---'}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-black text-white/20 uppercase w-12">Échéance:</span>
-                        <span className={`text-[11px] font-black ${new Date(check.due_date) < new Date() && check.status === CheckStatus.PENDING ? 'text-rose-400' : 'text-white/80'}`}>
-                          {new Date(check.due_date).toLocaleDateString()}
+                        <span className={`text-[11px] font-black ${check.due_date && new Date(check.due_date) < new Date() && check.status === CheckStatus.PENDING ? 'text-rose-400' : 'text-white/80'}`}>
+                          {check.due_date ? new Date(check.due_date).toLocaleDateString() : '---'}
                         </span>
                       </div>
                     </div>
@@ -389,28 +376,11 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
                           ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                           : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                     }`}>
-                      {check.status === CheckStatus.PAID ? 'Réglé' : check.status === CheckStatus.PENDING ? 'En attente' : 'Retourné'}
+                      {check.status === CheckStatus.PAID ? 'Payé' : check.status === CheckStatus.PENDING ? 'En attente' : 'Impayé'}
                     </span>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                       <button className="p-2.5 bg-white/5 hover:bg-gold/20 hover:text-gold rounded-lg transition-all">
-                         <Info size={14} />
-                       </button>
-                       <button className="p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition-all">
-                         <MoreHorizontal size={14} />
-                       </button>
-                    </div>
                   </td>
                 </tr>
               ))}
-              {filteredChecks.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-24 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/10 italic">Aucune donnée correspondante</p>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>

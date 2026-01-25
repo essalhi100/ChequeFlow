@@ -16,7 +16,7 @@ export const extractCheckData = async (base64Image: string) => {
             },
           },
           {
-            text: "Analysez cette image de chèque et extrayez les détails suivants au format JSON: check_number, bank_name, amount (numérique), entity_name (le nom de l'émetteur ou du bénéficiaire), issue_date (AAAA-MM-JJ), et due_date (AAAA-MM-JJ). Si une date est manquante, estimez-la ou laissez-la nulle. Veuillez traduire les noms de banques ou d'entités en français si nécessaire et assurer une réponse exclusivement en format JSON.",
+            text: "Analysez cette image de chèque et extrayez les détails suivants au format JSON: check_number, bank_name, amount (numérique), entity_name (le nom de l'émetteur ou du bénéficiaire), issue_date (AAAA-MM-JJ), due_date (AAAA-MM-JJ), et notes (toute information supplémentaire ou mention manuscrite trouvée sur le chèque). Si une date est manquante, estimez-la ou laissez-la nulle. Veuillez traduire les noms de banques ou d'entités en français si nécessaire et assurer une réponse exclusivement en format JSON.",
           },
         ],
       },
@@ -31,6 +31,7 @@ export const extractCheckData = async (base64Image: string) => {
             entity_name: { type: Type.STRING },
             issue_date: { type: Type.STRING },
             due_date: { type: Type.STRING },
+            notes: { type: Type.STRING, description: "Observations ou notes extraites du chèque" }
           }
         },
       },
