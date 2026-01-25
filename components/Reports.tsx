@@ -8,7 +8,8 @@ import {
   Download, Printer, RefreshCw, FileText, TrendingUp, TrendingDown, 
   AlertCircle, Building2, 
   AlertTriangle, ChevronDown,
-  Info
+  Info,
+  ShieldCheck
 } from 'lucide-react';
 import { Check, CheckStatus, Currency, CheckType } from '../types.ts';
 import { COLORS, formatCurrency } from '../constants.tsx';
@@ -33,6 +34,7 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
     const outgoing = checks.filter(c => c.type === CheckType.OUTGOING);
     const pending = checks.filter(c => c.status === CheckStatus.PENDING);
     const returned = checks.filter(c => c.status === CheckStatus.RETURNED);
+    const garantie = checks.filter(c => c.status === CheckStatus.GARANTIE);
     const dueSoon = pending.filter(c => {
       if (!c.due_date) return false;
       const due = new Date(c.due_date);
@@ -53,6 +55,8 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
       countPending: pending.length,
       totalReturned: returned.reduce((s, c) => s + c.amount, 0),
       countReturned: returned.length,
+      totalGarantie: garantie.reduce((s, c) => s + c.amount, 0),
+      countGarantie: garantie.length,
       totalDueSoon: dueSoon.reduce((s, c) => s + c.amount, 0),
       countDueSoon: dueSoon.length,
       countDueToday: dueToday.length,
@@ -63,7 +67,8 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
   const statusChartData = [
     { name: 'Payé', value: checks.filter(c => c.status === CheckStatus.PAID).length, color: COLORS.success },
     { name: 'En attente', value: stats.countPending, color: '#f59e0b' },
-    { name: 'Impayé', value: stats.countReturned, color: COLORS.risk },
+    { name: 'Return', value: stats.countReturned, color: COLORS.risk },
+    { name: 'Garantie', value: stats.countGarantie, color: '#3b82f6' },
   ].filter(d => d.value > 0);
 
   const monthlyData = useMemo(() => {
@@ -160,7 +165,7 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.countDueToday > 0 && (
           <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-[14px] flex items-center gap-4 animate-pulse">
             <div className="p-2.5 bg-amber-500/20 rounded-full text-amber-500">
@@ -179,13 +184,13 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
             </div>
             <div>
               <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Alerte de Risque Financier</p>
-              <p className="text-xs text-white/80 font-bold">{stats.countReturned} instruments impayés détectés dans le coffre.</p>
+              <p className="text-xs text-white/80 font-bold">{stats.countReturned} Return(s) détectés dans le coffre.</p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <SummaryCard 
           title="Total Entrants" 
           amount={stats.totalIncoming} 
@@ -211,12 +216,21 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
           subText="Attente de compensation"
         />
         <SummaryCard 
-          title="Impayés" 
+          title="Returns" 
           amount={stats.totalReturned} 
           count={stats.countReturned} 
           icon={AlertTriangle} 
-          color="text-slate-400" 
+          color="text-rose-400" 
           subText="Liquidité non vérifiée"
+        />
+        {/* Fix: Replaced non-existent ShieldCircle with ShieldCheck and added to imports */}
+        <SummaryCard 
+          title="Garanties" 
+          amount={stats.totalGarantie} 
+          count={stats.countGarantie} 
+          icon={ShieldCheck} 
+          color="text-blue-400" 
+          subText="Engagements externes"
         />
       </div>
 
@@ -318,7 +332,8 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
                  <option value="all">Tous les Statuts</option>
                  <option value={CheckStatus.PAID}>Payés</option>
                  <option value={CheckStatus.PENDING}>En attente</option>
-                 <option value={CheckStatus.RETURNED}>Impayés</option>
+                 <option value={CheckStatus.RETURNED}>Returns</option>
+                 <option value={CheckStatus.GARANTIE}>Garanties</option>
                </select>
                <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
              </div>
@@ -374,9 +389,11 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                         : check.status === CheckStatus.PENDING 
                           ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                          : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                          : check.status === CheckStatus.GARANTIE
+                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                     }`}>
-                      {check.status === CheckStatus.PAID ? 'Payé' : check.status === CheckStatus.PENDING ? 'En attente' : 'Impayé'}
+                      {check.status === CheckStatus.PAID ? 'Payé' : check.status === CheckStatus.PENDING ? 'En attente' : check.status === CheckStatus.GARANTIE ? 'Garantie' : 'Return'}
                     </span>
                   </td>
                 </tr>

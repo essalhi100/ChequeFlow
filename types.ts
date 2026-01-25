@@ -7,7 +7,8 @@ export enum CheckType {
 export enum CheckStatus {
   PENDING = 'pending',
   PAID = 'paid',
-  RETURNED = 'returned'
+  RETURNED = 'returned',
+  GARANTIE = 'garantie'
 }
 
 export enum Currency {

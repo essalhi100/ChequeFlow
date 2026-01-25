@@ -225,7 +225,8 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                 >
                   <option value={CheckStatus.PENDING} className="bg-slate-900">En attente</option>
                   <option value={CheckStatus.PAID} className="bg-slate-900">Payé</option>
-                  <option value={CheckStatus.RETURNED} className="bg-slate-900">Impayé</option>
+                  <option value={CheckStatus.RETURNED} className="bg-slate-900">Return</option>
+                  <option value={CheckStatus.GARANTIE} className="bg-slate-900">Garantie</option>
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 group-focus-within:text-gold">
                   <Receipt size={14} />

@@ -92,7 +92,8 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
             <option value="all">Statuts: Tous</option>
             <option value={CheckStatus.PENDING}>En attente</option>
             <option value={CheckStatus.PAID}>Payé</option>
-            <option value={CheckStatus.RETURNED}>Impayé</option>
+            <option value={CheckStatus.RETURNED}>Return</option>
+            <option value={CheckStatus.GARANTIE}>Garantie</option>
           </select>
         </div>
       </div>
