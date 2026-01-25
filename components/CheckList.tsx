@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, CheckCircle2, Pencil } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Pencil, RotateCcw } from 'lucide-react';
 import { Check, Currency, CheckType, CheckStatus } from '../types.ts';
 import { formatCurrency, getStatusBadge, getTypeBadge } from '../constants.tsx';
 
@@ -19,6 +19,13 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | CheckStatus>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | CheckType>('all');
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setDateFilter('all');
+    setStatusFilter('all');
+    setTypeFilter('all');
+  };
 
   const isToday = (dateString: string) => {
     if (!dateString) return false;
@@ -57,14 +64,23 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 items-center">
-        <div className="relative flex-1 group w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
-          <input 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher par numéro, entité ou ملاحظات..."
-            className="w-full bg-[#0a0d18] border border-white/5 rounded-[12px] py-3 pl-11 pr-4 text-xs font-medium focus:outline-none focus:border-gold/20 transition-all placeholder:text-white/10 text-white"
-          />
+        <div className="flex items-center gap-2 flex-1 w-full">
+          <button 
+            onClick={handleReset}
+            className="p-3 bg-[#0a0d18] border border-white/5 rounded-[12px] text-white/40 hover:text-white transition-all group"
+            title="Réinitialiser les filtres"
+          >
+            <RotateCcw size={16} className="group-hover:rotate-[-45deg] transition-transform" />
+          </button>
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
+            <input 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher par numéro, entité أو ملاحظات..."
+              className="w-full bg-[#0a0d18] border border-white/5 rounded-[12px] py-3 pl-11 pr-4 text-xs font-medium focus:outline-none focus:border-gold/20 transition-all placeholder:text-white/10 text-white"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-1 bg-[#0a0d18] p-1 rounded-[12px] border border-white/5 w-full lg:w-auto">

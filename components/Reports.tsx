@@ -9,7 +9,8 @@ import {
   AlertCircle, Building2, 
   AlertTriangle, ChevronDown,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
 import { Check, CheckStatus, Currency, CheckType } from '../types.ts';
 import { COLORS, formatCurrency } from '../constants.tsx';
@@ -24,6 +25,13 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
   const [typeFilter, setTypeFilter] = useState<'all' | CheckType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | CheckStatus>('all');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setTypeFilter('all');
+    setStatusFilter('all');
+    setDateRange({ from: '', to: '' });
+  };
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -138,6 +146,13 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
           <p className="text-white/40 text-sm">Audit en temps réel et analyse du capital</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <button 
+            onClick={handleReset}
+            className="p-3 bg-[#0a0d18] border border-white/5 rounded-[12px] text-white/40 hover:text-white transition-all group"
+            title="Réinitialiser tous les filtres"
+          >
+            <RotateCcw size={18} className="group-hover:rotate-[-45deg] transition-transform" />
+          </button>
           <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-[12px] border border-white/10">
             <input 
               type="date" 
@@ -223,7 +238,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
           color="text-rose-400" 
           subText="Liquidité non vérifiée"
         />
-        {/* Fix: Replaced non-existent ShieldCircle with ShieldCheck and added to imports */}
         <SummaryCard 
           title="Garanties" 
           amount={stats.totalGarantie} 
@@ -304,14 +318,23 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
         <div className="p-8 border-b border-white/5 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <h4 className="text-lg font-bold">Matrice de Données Détaillée</h4>
-            <div className="relative group min-w-[320px]">
-              <Info className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold transition-colors" size={18} />
-              <input 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Recherche par entité, banque ou chèque #"
-                className="w-full bg-white/5 border border-white/10 rounded-[12px] py-3 pl-12 pr-4 text-sm focus:outline-none focus:border-gold/30 transition-all placeholder:text-white/10"
-              />
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={handleReset}
+                className="p-3 bg-[#0a0d18] border border-white/5 rounded-[12px] text-white/40 hover:text-white transition-all group"
+                title="Réinitialiser les filtres locaux"
+              >
+                <RotateCcw size={16} className="group-hover:rotate-[-45deg] transition-transform" />
+              </button>
+              <div className="relative group min-w-[320px]">
+                <Info className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold transition-colors" size={18} />
+                <input 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Recherche par entité, banque ou chèque #"
+                  className="w-full bg-white/5 border border-white/10 rounded-[12px] py-3 pl-12 pr-4 text-sm focus:outline-none focus:border-gold/30 transition-all placeholder:text-white/10"
+                />
+              </div>
             </div>
           </div>
 
@@ -327,13 +350,13 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
                <select 
                  value={statusFilter}
                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                 className="w-full bg-white/5 border border-white/10 rounded-[10px] py-2.5 pl-10 pr-4 text-[10px] font-black uppercase tracking-widest focus:outline-none appearance-none cursor-pointer"
+                 className="w-full bg-black border border-white/10 rounded-[10px] py-2.5 pl-10 pr-4 text-[10px] font-black uppercase tracking-widest focus:outline-none appearance-none cursor-pointer text-white"
                >
-                 <option value="all">Tous les Statuts</option>
-                 <option value={CheckStatus.PAID}>Payés</option>
-                 <option value={CheckStatus.PENDING}>En attente</option>
-                 <option value={CheckStatus.RETURNED}>Returns</option>
-                 <option value={CheckStatus.GARANTIE}>Garanties</option>
+                 <option value="all" className="bg-black text-white">Tous les Statuts</option>
+                 <option value={CheckStatus.PAID} className="bg-black text-white">Payés</option>
+                 <option value={CheckStatus.PENDING} className="bg-black text-white">En attente</option>
+                 <option value={CheckStatus.RETURNED} className="bg-black text-white">Returns</option>
+                 <option value={CheckStatus.GARANTIE} className="bg-black text-white">Garanties</option>
                </select>
                <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
              </div>

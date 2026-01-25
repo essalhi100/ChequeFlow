@@ -21,7 +21,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
 };
 
 const ADMIN_EMAIL = 'admin@apollo.com';
-const STORAGE_KEY = 'finansse_internal_db_v2'; // Updated key to ensure clean start if needed
+const STORAGE_KEY = 'finansse_internal_db_v2'; 
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -35,13 +35,11 @@ const App: React.FC = () => {
   const [editingCheck, setEditingCheck] = useState<Check | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Load and Clean Internal Database (LocalStorage)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure absolutely no "usage" or other ghost properties exist
         const cleaned = parsed.map((c: any) => {
           const { usage, ...rest } = c;
           return rest;
@@ -55,7 +53,6 @@ const App: React.FC = () => {
     setLoading(false);
   }, []);
 
-  // 2. Persist to LocalStorage whenever checks change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(checks));
   }, [checks]);
@@ -71,12 +68,11 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Operational Alerts Monitoring
   useEffect(() => {
     const today = new Date();
     checks.forEach(c => {
       if (c.status === CheckStatus.RETURNED) {
-        addNotification('Alerte : Chèque Retourné', `L'instrument #${c.check_number} a été rejeté.`, 'danger', c.id);
+        addNotification('Alerte : Chèque Return', `L'instrument #${c.check_number} a été marqué comme Return.`, 'danger', c.id);
       }
       if (c.status === CheckStatus.PENDING && new Date(c.due_date) < today) {
         addNotification('Risque : Échéance Dépassée', `L'instrument #${c.check_number} est arrivé à maturité.`, 'warning', c.id);
@@ -87,7 +83,6 @@ const App: React.FC = () => {
     });
   }, [checks, addNotification, settings.high_value_threshold]);
 
-  // Supabase Auth and Sync
   useEffect(() => {
     if (!isConfigured) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -107,7 +102,6 @@ const App: React.FC = () => {
       .order('created_at', { ascending: false });
     
     if (!error && checksData) {
-      // Clean incoming server data to strictly match our current interface
       const validated = checksData.map((serverCheck: any) => {
         const { usage, user_id, ...validKeys } = serverCheck;
         return validKeys as Check;
@@ -139,7 +133,6 @@ const App: React.FC = () => {
   const handleSaveCheck = async (checkData: Partial<Check>) => {
     if (!session) return;
     
-    // STRICT SCHEMA: Define only existing columns in the current database structure
     const cleanedData = {
       check_number: checkData.check_number || '000000',
       bank_name: checkData.bank_name || 'Inconnue',
@@ -160,7 +153,6 @@ const App: React.FC = () => {
       ...cleanedData,
     } as Check;
 
-    // Optimistic Update for UI
     if (editingCheck) {
       setChecks(prev => prev.map(c => c.id === editingCheck.id ? optimisticCheck : c));
     } else {
@@ -170,7 +162,6 @@ const App: React.FC = () => {
     setIsModalOpen(false);
     setEditingCheck(null);
 
-    // External Database Sync
     if (isConfigured) {
       try {
         if (editingCheck) {
@@ -240,7 +231,6 @@ const App: React.FC = () => {
       />
       
       <main className="flex-1 overflow-y-auto h-screen relative custom-scrollbar">
-        {/* Header with Notifications */}
         <div className="sticky top-0 z-40 p-8 flex items-center justify-end pointer-events-none">
           <div className="relative pointer-events-auto">
             <button 
