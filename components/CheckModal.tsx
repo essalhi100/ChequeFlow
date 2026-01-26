@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote, Archive, Image as ImageIcon, UserCheck } from 'lucide-react';
+import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote, AlertCircle, UserCheck } from 'lucide-react';
 import { Check, CheckType, CheckStatus } from '../types.ts';
 import { extractCheckData } from '../services/geminiService.ts';
 
@@ -10,13 +10,13 @@ interface CheckModalProps {
   initialData?: Check | null;
 }
 
-const InputWrapper = ({ label, icon: Icon, children }: any) => (
+const InputWrapper = ({ label, icon: Icon, children, error }: any) => (
   <div className="space-y-1.5 group">
-    <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1 group-focus-within:text-gold transition-colors">
-      {label}
+    <label className={`text-[10px] uppercase tracking-widest font-black ml-1 transition-colors ${error ? 'text-rose-500' : 'text-white/30 group-focus-within:text-gold'}`}>
+      {label} {error && '*'}
     </label>
-    <div className="relative rounded-[14px] border border-white/10 bg-white/5 transition-all duration-300 focus-within:border-gold/50 focus-within:bg-gold/[0.02] focus-within:ring-1 focus-within:ring-gold/20">
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold transition-colors">
+    <div className={`relative rounded-[14px] border transition-all duration-300 bg-white/5 focus-within:ring-1 ${error ? 'border-rose-500/50 bg-rose-500/[0.02] ring-rose-500/20' : 'border-white/10 focus-within:border-gold/50 focus-within:bg-gold/[0.02] focus-within:ring-gold/20'}`}>
+      <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${error ? 'text-rose-500' : 'text-white/20 group-focus-within:text-gold'}`}>
         <Icon size={18} />
       </div>
       {children}
@@ -25,15 +25,13 @@ const InputWrapper = ({ label, icon: Icon, children }: any) => (
 );
 
 const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData }) => {
-  // الحصول على تاريخ اليوم بتنسيق YYYY-MM-DD
   const today = new Date().toISOString().split('T')[0];
-
   const [formData, setFormData] = useState<Partial<Check>>(
     initialData || {
       check_number: '',
       bank_name: '',
       amount: 0,
-      issue_date: today, // تعيين تاريخ اليوم كافتراضي
+      issue_date: today,
       due_date: '',
       entity_name: '',
       fund_name: '',
@@ -45,6 +43,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
   );
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,6 +58,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
     if (!file) return;
 
     setIsProcessing(true);
+    setErrors([]);
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
@@ -69,10 +69,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
         setFormData(prev => ({
           ...prev,
           ...extracted,
-          // تطبيق تعليمات المستخدم: 
-          // 1. تاريخ الإصدار يبقى تاريخ اليوم (أو التاريخ المدخل يدوياً مسبقاً)
-          issue_date: prev.issue_date || today, 
-          // 2. تاريخ الاستحقاق يتم استخراجه من الشيك
+          issue_date: prev.issue_date || today,
           due_date: extracted.due_date || prev.due_date,
           fund_name: extracted.fund_name || prev.fund_name,
           notes: extracted.notes || prev.notes,
@@ -81,6 +78,22 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
       setIsProcessing(false);
     };
     reader.readAsDataURL(file);
+  };
+
+  const validate = () => {
+    const newErrors: string[] = [];
+    if (!formData.check_number) newErrors.push("Numéro de Chèque est obligatoire.");
+    if (!formData.amount || formData.amount <= 0) newErrors.push("Montant du Capital est obligatoire.");
+    if (!formData.entity_name) newErrors.push("A Émetteur est obligatoire.");
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      onSave(formData);
+    }
   };
 
   return (
@@ -148,7 +161,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </div>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
             
             <div className="grid grid-cols-2 gap-4">
                <button 
@@ -168,22 +181,28 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputWrapper label="Numéro de Chèque" icon={Fingerprint}>
+              <InputWrapper label="Numéro de Chèque" icon={Fingerprint} error={errors.some(e => e.includes("Numéro"))}>
                 <input 
                   ref={firstInputRef}
                   value={formData.check_number}
-                  onChange={e => setFormData({...formData, check_number: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, check_number: e.target.value});
+                    setErrors(prev => prev.filter(err => !err.includes("Numéro")));
+                  }}
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none placeholder:text-white/5"
                   placeholder="Ex: 12345678"
                 />
               </InputWrapper>
               
-              <InputWrapper label="Montant du Capital" icon={DollarSign}>
+              <InputWrapper label="Montant du Capital" icon={DollarSign} error={errors.some(e => e.includes("Montant"))}>
                 <input 
                   type="number"
                   step="any"
                   value={formData.amount || ''}
-                  onChange={e => setFormData({...formData, amount: parseFloat(e.target.value) || 0})}
+                  onChange={e => {
+                    setFormData({...formData, amount: parseFloat(e.target.value) || 0});
+                    setErrors(prev => prev.filter(err => !err.includes("Montant")));
+                  }}
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-black focus:outline-none placeholder:text-white/5"
                   placeholder="0.00"
                 />
@@ -191,10 +210,13 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputWrapper label="A Émetteur" icon={User}>
+              <InputWrapper label="A Émetteur" icon={User} error={errors.some(e => e.includes("Émetteur"))}>
                 <input 
                   value={formData.entity_name}
-                  onChange={e => setFormData({...formData, entity_name: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, entity_name: e.target.value});
+                    setErrors(prev => prev.filter(err => !err.includes("Émetteur")));
+                  }}
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none placeholder:text-white/5"
                   placeholder="Nom de l'entité"
                 />
@@ -220,7 +242,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </InputWrapper>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* تاريخ الإصدار - مثبت على تاريخ اليوم افتراضياً */}
               <InputWrapper label="Date d'Émission" icon={Calendar}>
                 <input 
                   type="date"
@@ -229,7 +250,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none [color-scheme:dark]"
                 />
               </InputWrapper>
-              {/* تاريخ الاستحقاق - يستخرج من الشيك عبر OCR */}
               <InputWrapper label="Date d'Échéance" icon={Calendar}>
                 <input 
                   type="date"
@@ -286,10 +306,26 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
               </div>
             </div>
 
+            {/* Error Message Section */}
+            {errors.length > 0 && (
+              <div className="p-4 rounded-[14px] bg-rose-500/10 border border-rose-500/20 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-3 text-rose-500 mb-2">
+                  <AlertCircle size={18} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Champs obligatoires manquants</span>
+                </div>
+                <ul className="space-y-1">
+                  {errors.map((error, idx) => (
+                    <li key={idx} className="text-[11px] text-white/40 font-medium italic pl-7">• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="pt-4">
               <button 
                 type="submit"
-                className="w-full py-5 bg-gold text-black rounded-[16px] font-black text-[11px] uppercase tracking-[0.2em] gold-glow hover:scale-[1.01] active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-3"
+                className="w-full py-5 bg-gold text-black rounded-[16px] font-black text-[11px] uppercase tracking-[0.2em] gold-glow hover:scale-[1.01] active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isProcessing}
               >
                 {initialData ? 'Mettre à jour le registre' : 'Enregistrer dans le coffre'}
               </button>
