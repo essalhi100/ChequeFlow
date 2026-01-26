@@ -1,10 +1,9 @@
-
 import React, { useMemo, useState } from 'react';
 import { 
   TrendingUp, TrendingDown, Clock, CheckCircle2, 
   ShieldCheck, AlertTriangle, Filter, RotateCcw, 
   MoreVertical, Edit2, CheckCircle, Banknote,
-  ChevronRight
+  ChevronRight, Archive, UserCheck
 } from 'lucide-react';
 import { Check, CheckType, CheckStatus, Currency } from '../types.ts';
 import { formatCurrency } from '../constants.tsx';
@@ -17,15 +16,12 @@ interface MobileDashboardProps {
 }
 
 const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onEdit, onMarkAsPaid }) => {
-  // Filters State - Default changed to 'month' as requested
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | '15days' | 'month'>('month');
   const [typeFilter, setTypeFilter] = useState<CheckType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<CheckStatus | 'all'>('all');
 
-  // Logic: Apply all filters to the dataset
   const filteredData = useMemo(() => {
     return checks.filter(c => {
-      // 1. Time Filter
       const checkDate = new Date(c.due_date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -45,17 +41,13 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
         matchesTime = checkDate.getMonth() === today.getMonth() && checkDate.getFullYear() === today.getFullYear();
       }
 
-      // 2. Type Filter
       const matchesType = typeFilter === 'all' || c.type === typeFilter;
-
-      // 3. Status Filter
       const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
 
       return matchesTime && matchesType && matchesStatus;
     });
   }, [checks, timeFilter, typeFilter, statusFilter]);
 
-  // Statistics derived FROM filteredData
   const stats = useMemo(() => {
     const sum = (type?: CheckType, status?: CheckStatus) => {
       return filteredData
@@ -89,7 +81,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24">
       
-      {/* HEADER FILTERS - TIME (Slimmer fonts) */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
         {[
           { id: 'today', label: 'Today' },
@@ -110,7 +101,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
         </button>
       </div>
 
-      {/* TYPE FILTERS (Slimmer fonts) */}
       <div className="flex bg-[#0a0d18] p-1.5 rounded-2xl border border-white/5">
         <button 
           onClick={() => setTypeFilter(typeFilter === CheckType.INCOMING ? 'all' : CheckType.INCOMING)}
@@ -126,7 +116,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
         </button>
       </div>
 
-      {/* STATUS FILTERS (Slimmer fonts) */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {[
           { id: CheckStatus.PENDING, label: 'PENDING', color: 'border-gold/30 text-gold' },
@@ -144,7 +133,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
         ))}
       </div>
 
-      {/* SUMMARY CARDS (Responsive to filters) */}
       <div className="space-y-4">
         <h4 className="text-xl font-semibold text-white tracking-tight">Summary</h4>
         <div className="grid grid-cols-2 gap-4">
@@ -157,7 +145,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
         </div>
       </div>
 
-      {/* RECENT TRANSACTIONS (Slimmer fonts and numbers) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="text-xl font-semibold text-white tracking-tight">Matching Records</h4>
@@ -186,6 +173,12 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
                 <div>
                   <h5 className="text-[14px] font-semibold text-white truncate max-w-[130px]">{c.entity_name}</h5>
                   <p className="text-[10px] text-white/30 font-normal truncate max-w-[130px]">{c.bank_name} • {c.check_number}</p>
+                  {c.fund_name && (
+                    <div className="flex items-center gap-1 mt-1 text-gold/60">
+                      <UserCheck size={10} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">{c.fund_name}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="text-right flex items-center gap-3">

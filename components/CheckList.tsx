@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, CheckCircle2, Pencil, RotateCcw } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Pencil, RotateCcw, UserCheck } from 'lucide-react';
 import { Check, Currency, CheckType, CheckStatus } from '../types.ts';
 import { formatCurrency, getStatusBadge, getTypeBadge } from '../constants.tsx';
 
@@ -40,6 +40,7 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
     const matchesSearch = 
       c.entity_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       c.check_number.includes(searchTerm) ||
+      (c.fund_name && c.fund_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (c.notes && c.notes.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
     const matchesType = typeFilter === 'all' || c.type === typeFilter;
@@ -77,7 +78,7 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
             <input 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher par numéro, entité أو ملاحظات..."
+              placeholder="Rechercher par numéro, entité, A L'ORDRE DE..."
               className="w-full bg-[#0a0d18] border border-white/5 rounded-[12px] py-3 pl-11 pr-4 text-xs font-medium focus:outline-none focus:border-gold/20 transition-all placeholder:text-white/10 text-white"
             />
           </div>
@@ -121,7 +122,8 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
               <tr className="border-b border-white/5 bg-white/[0.01]">
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">Référence</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">Échéance</th>
-                <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">Bénéficiaire/Émetteur</th>
+                <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">A Émetteur</th>
+                <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">A L'ORDRE DE</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold">Montant</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold text-center">Type</th>
                 <th className="px-6 py-4 text-[8px] uppercase tracking-[0.15em] text-white/20 font-bold text-center">État</th>
@@ -146,6 +148,12 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
                     </div>
                   </td>
                   <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-gold/80">
+                      <UserCheck size={14} />
+                      <span className="text-[11px] font-bold uppercase tracking-widest">{check.fund_name || '---'}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
                     <span className="text-[12px] font-bold text-white">{formatCurrency(check.amount, currency)}</span>
                   </td>
                   <td className="px-6 py-4 text-center">{getTypeBadge(check.type)}</td>
@@ -166,7 +174,7 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
               ))}
               {filteredChecks.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <p className="text-xs font-bold text-white/20 uppercase tracking-widest italic">Aucun instrument trouvé</p>
                   </td>
                 </tr>

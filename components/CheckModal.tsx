@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote, Image as ImageIcon } from 'lucide-react';
+import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote, Archive, Image as ImageIcon, UserCheck } from 'lucide-react';
 import { Check, CheckType, CheckStatus } from '../types.ts';
 import { extractCheckData } from '../services/geminiService.ts';
 
@@ -25,14 +25,18 @@ const InputWrapper = ({ label, icon: Icon, children }: any) => (
 );
 
 const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData }) => {
+  // الحصول على تاريخ اليوم بتنسيق YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0];
+
   const [formData, setFormData] = useState<Partial<Check>>(
     initialData || {
       check_number: '',
       bank_name: '',
       amount: 0,
-      issue_date: new Date().toISOString().split('T')[0],
+      issue_date: today, // تعيين تاريخ اليوم كافتراضي
       due_date: '',
       entity_name: '',
+      fund_name: '',
       type: CheckType.INCOMING,
       status: CheckStatus.PENDING,
       notes: '',
@@ -65,8 +69,12 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
         setFormData(prev => ({
           ...prev,
           ...extracted,
-          issue_date: extracted.issue_date || prev.issue_date,
+          // تطبيق تعليمات المستخدم: 
+          // 1. تاريخ الإصدار يبقى تاريخ اليوم (أو التاريخ المدخل يدوياً مسبقاً)
+          issue_date: prev.issue_date || today, 
+          // 2. تاريخ الاستحقاق يتم استخراجه من الشيك
           due_date: extracted.due_date || prev.due_date,
+          fund_name: extracted.fund_name || prev.fund_name,
           notes: extracted.notes || prev.notes,
         }));
       }
@@ -79,7 +87,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
       <div className="glass-card w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[24px] flex flex-col shadow-2xl border-white/10 animate-in zoom-in duration-300">
         
-        {/* Header */}
         <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
           <div>
             <h2 className="text-xl md:text-2xl font-black italic tracking-tight text-white uppercase">
@@ -98,10 +105,8 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
           </button>
         </div>
 
-        {/* Combined Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 space-y-8">
           
-          {/* Integrated Image Section */}
           <div className="space-y-3">
             <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">
               Capture & Analyse OCR
@@ -145,7 +150,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
 
           <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-8">
             
-            {/* Type Selector */}
             <div className="grid grid-cols-2 gap-4">
                <button 
                  type="button"
@@ -157,7 +161,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                <button 
                  type="button"
                  onClick={() => setFormData({...formData, type: CheckType.OUTGOING})}
-                 className={`py-4 rounded-[16px] border font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${formData.type === CheckType.OUTGOING ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-white/5 border-transparent text-white/20 hover:bg-white/10'}`}
+                 className={`py-4 rounded-[16px] border font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${formData.type === CheckType.OUTGOING ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-white/5 border-transparent text-white/20 hover:text-white/10'}`}
                >
                  <Receipt size={16} /> Sortant
                </button>
@@ -187,7 +191,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputWrapper label="Bénéficiaire / Émetteur" icon={User}>
+              <InputWrapper label="A Émetteur" icon={User}>
                 <input 
                   value={formData.entity_name}
                   onChange={e => setFormData({...formData, entity_name: e.target.value})}
@@ -206,7 +210,17 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
               </InputWrapper>
             </div>
 
+            <InputWrapper label="A L'ORDRE DE" icon={UserCheck}>
+              <input 
+                value={formData.fund_name || ''}
+                onChange={e => setFormData({...formData, fund_name: e.target.value})}
+                className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-bold focus:outline-none placeholder:text-white/5"
+                placeholder="A l'ordre de..."
+              />
+            </InputWrapper>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* تاريخ الإصدار - مثبت على تاريخ اليوم افتراضياً */}
               <InputWrapper label="Date d'Émission" icon={Calendar}>
                 <input 
                   type="date"
@@ -215,6 +229,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none [color-scheme:dark]"
                 />
               </InputWrapper>
+              {/* تاريخ الاستحقاق - يستخرج من الشيك عبر OCR */}
               <InputWrapper label="Date d'Échéance" icon={Calendar}>
                 <input 
                   type="date"

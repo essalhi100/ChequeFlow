@@ -52,6 +52,7 @@ export interface Check {
   entity_name: string;
   type: CheckType;
   status: CheckStatus;
+  fund_name?: string;
   notes?: string;
   image_url?: string;
   created_at: string;
