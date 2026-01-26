@@ -36,6 +36,12 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     }
   };
 
+  const handleSaveAndRedirect = (data: Partial<Check>) => {
+    onSaveCheck(data);
+    setIsAddOpen(false);
+    setActiveTab('dash'); // Force return to Dashboard (Home) after saving
+  };
+
   // Simplified content rendering for mobile
   const renderContent = () => {
     switch (activeTab) {
@@ -122,7 +128,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       {isAddOpen && (
         <CheckModal 
           onClose={() => setIsAddOpen(false)}
-          onSave={onSaveCheck}
+          onSave={handleSaveAndRedirect}
           initialData={editingCheck}
         />
       )}
