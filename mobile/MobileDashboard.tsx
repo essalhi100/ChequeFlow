@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   TrendingUp, TrendingDown, Clock, CheckCircle2, 
   ShieldCheck, AlertTriangle, Filter, RotateCcw, 
   MoreVertical, Edit2, CheckCircle, Banknote,
-  ChevronRight, Archive, UserCheck
+  ChevronRight, Archive, UserCheck, ChevronLeft
 } from 'lucide-react';
 import { Check, CheckType, CheckStatus, Currency } from '../types.ts';
 import { formatCurrency } from '../constants.tsx';
@@ -15,10 +15,18 @@ interface MobileDashboardProps {
   onMarkAsPaid?: (id: string) => void;
 }
 
+const ITEMS_PER_PAGE = 6;
+
 const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onEdit, onMarkAsPaid }) => {
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | '15days' | 'month'>('month');
   const [typeFilter, setTypeFilter] = useState<CheckType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<CheckStatus | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [timeFilter, typeFilter, statusFilter, checks]);
 
   const filteredData = useMemo(() => {
     return checks.filter(c => {
@@ -48,6 +56,13 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
     });
   }, [checks, timeFilter, typeFilter, statusFilter]);
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredData.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredData, currentPage]);
+
   const stats = useMemo(() => {
     const sum = (type?: CheckType, status?: CheckStatus) => {
       return filteredData
@@ -69,6 +84,7 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
     setTimeFilter('month');
     setTypeFilter('all');
     setStatusFilter('all');
+    setCurrentPage(1);
   };
 
   const SummaryCard = ({ label, amount, colorClass, borderClass }: any) => (
@@ -152,7 +168,7 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
         </div>
         
         <div className="space-y-3">
-          {filteredData.map(c => (
+          {paginatedData.map(c => (
             <button 
               key={c.id} 
               onClick={() => onEdit?.(c)}
@@ -197,6 +213,32 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
             <div className="py-20 text-center glass-card rounded-[22px] border-white/5 opacity-50">
               <Banknote size={40} className="mx-auto text-white/10 mb-3" />
               <p className="text-[9px] font-semibold text-white/20 uppercase tracking-[0.2em]">No Records Found</p>
+            </div>
+          )}
+
+          {/* Mobile Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 pb-8">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="p-3 rounded-xl bg-white/5 text-white/40 disabled:opacity-20 transition-all active:scale-90"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              
+              <div className="flex flex-col items-center">
+                <p className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">Page {currentPage}</p>
+                <p className="text-[8px] text-white/20 uppercase tracking-widest font-bold">sur {totalPages}</p>
+              </div>
+
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="p-3 rounded-xl bg-white/5 text-white/40 disabled:opacity-20 transition-all active:scale-90"
+              >
+                <ChevronRight size={20} />
+              </button>
             </div>
           )}
         </div>
