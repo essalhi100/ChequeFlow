@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote, AlertCircle, UserCheck, Type as TypeIcon } from 'lucide-react';
 import { Check, CheckType, CheckStatus } from '../types.ts';
@@ -31,8 +30,7 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
       check_number: '',
       bank_name: '',
       amount: 0,
-      amount_in_words: '',
-      issue_date: today, // Date d'émission par défaut à aujourd'hui
+      issue_date: today,
       due_date: '',
       entity_name: '',
       fund_name: '',
@@ -70,11 +68,10 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
         setFormData(prev => ({
           ...prev,
           ...extracted,
-          issue_date: prev.issue_date || today, // Garder aujourd'hui si non extrait
-          due_date: extracted.due_date || prev.due_date, // Date d'échéance extraite du chèque
+          issue_date: prev.issue_date || today,
+          due_date: extracted.due_date || prev.due_date,
           fund_name: extracted.fund_name || prev.fund_name,
           notes: extracted.notes || prev.notes,
-          amount_in_words: extracted.amount_in_words || prev.amount_in_words,
         }));
       }
       setIsProcessing(false);
@@ -210,15 +207,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                 />
               </InputWrapper>
             </div>
-
-            <InputWrapper label="Montant en lettres" icon={TypeIcon}>
-              <input 
-                value={formData.amount_in_words || ''}
-                onChange={e => setFormData({...formData, amount_in_words: e.target.value})}
-                className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-medium italic focus:outline-none placeholder:text-white/5"
-                placeholder="Ex: Cinquante mille dirhams..."
-              />
-            </InputWrapper>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <InputWrapper label="A Émetteur" icon={User} error={errors.some(e => e.includes("Émetteur"))}>

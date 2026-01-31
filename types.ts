@@ -47,7 +47,6 @@ export interface Check {
   check_number: string;
   bank_name: string;
   amount: number;
-  amount_in_words?: string;
   issue_date: string;
   due_date: string;
   entity_name: string;

@@ -1,22 +1,22 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// استخدام القيم من متغيرات البيئة أو القيم الافتراضية الموفرة
-const supabaseUrl = process.env.SUPABASE_URL || 'https://eafsxriggorubqqsyezd.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_ua-7c0iLf10GGsacyVZrDQ_y4zYM3Xc';
+// القيم الصحيحة للمشروع الخاص بك
+const supabaseUrl = 'https://hbycnloggmuovsxulzuv.supabase.co';
+const supabaseAnonKey = 'sb_publishable_P6sc647KZDinDYnsoZ1MtA_RdGMRSc3';
 
-export const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const isConfigured = true;
 
-export const supabase = isConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        flowType: 'implicit'
-      },
-      global: {
-        headers: { 'x-application-name': 'finansse-pro' }
-      }
-    }) 
-  : null as any;
+console.log("🚀 Supabase: Initiating connection to", supabaseUrl);
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit'
+  },
+  global: {
+    headers: { 'x-application-name': 'finansse-pro-v1' }
+  }
+});
