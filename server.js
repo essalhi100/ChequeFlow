@@ -7,24 +7,28 @@ const { transform } = require('sucrase');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Enable CORS and clear headers for a smooth dev experience
+// Request logging for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// 1. CORS & Security Headers
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('X-Frame-Options', 'SAMEORIGIN');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// Middleware to transform TSX/TS files on the fly
+// 2. On-the-fly Transpilation (TypeScript/JSX)
 app.use((req, res, next) => {
-  const urlPath = req.path.split('?')[0];
-  // Clean path: handle both /file.tsx and file.tsx
-  const cleanPath = urlPath.startsWith('/') ? urlPath.slice(1) : urlPath;
-  const ext = path.extname(cleanPath);
-  
-  if (ext === '.ts' || ext === '.tsx' || cleanPath === 'index.tsx') {
-    const filePath = path.join(__dirname, cleanPath === '' ? 'index.tsx' : cleanPath);
+  const ext = path.extname(req.path);
+  if (ext === '.ts' || ext === '.tsx') {
+    const filePath = path.join(__dirname, req.path);
     
     if (fs.existsSync(filePath)) {
       try {
@@ -37,29 +41,35 @@ app.use((req, res, next) => {
         });
         
         let code = result.code;
-        // Inject environment variables safely
+
+        // Inject essential environment variables into the client-side code.
+        // We use a broader regex to replace process.env occurrences.
         const envKeys = ['API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
         envKeys.forEach(key => {
           const val = process.env[key] || '';
-          const regex = new RegExp(`process\\.env\\.${key}(?![a-zA-Z0-9_])`, 'g');
+          const regex = new RegExp(`process\\.env\\.${key}`, 'g');
           code = code.replace(regex, JSON.stringify(val));
         });
         
         res.set('Content-Type', 'application/javascript');
         return res.send(code);
       } catch (err) {
-        console.error(`Error transpiling ${cleanPath}:`, err);
-        return res.status(500).send(`/* Server Transpilation Error: ${err.message} */`);
+        console.error(`Transpilation error for ${req.path}:`, err);
+        res.set('Content-Type', 'application/javascript');
+        return res.status(500).send(`/* Transpilation Error: ${err.message} */`);
       }
+    } else {
+      console.warn(`File not found: ${filePath}`);
+      return res.status(404).set('Content-Type', 'text/plain').send('File not found');
     }
   }
   next();
 });
 
-// Serve static assets
+// 3. Static Files
 app.use(express.static(__dirname));
 
-// SPA fallback: redirect all unknown paths to index.html
+// 4. SPA Routing
 app.get('*', (req, res) => {
   if (req.path.includes('.') && !req.path.endsWith('.html')) {
     return res.status(404).send('Resource not found');
@@ -68,5 +78,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`FINANSSE PRO Server active on port ${port}`);
+  console.log(`FINANSSE PRO Server listening on port ${port}`);
 });

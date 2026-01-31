@@ -50,7 +50,6 @@ const App: React.FC = () => {
         const parsed = JSON.parse(saved);
         setChecks(parsed);
       } catch (e) {
-        console.error("Failed to parse stored checks", e);
         setChecks([]);
       }
     }
@@ -58,20 +57,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(checks));
-    } catch (e) {
-      if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-        console.warn('Storage quota exceeded. Stripping images to preserve financial data.');
-        // If storage is full, we save the checks without the base64 images
-        const strippedChecks = checks.map(({ image_url, ...rest }) => rest);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(strippedChecks));
-        } catch (innerError) {
-          console.error('Critical: LocalStorage completely failed.', innerError);
-        }
-      }
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(checks));
   }, [checks]);
 
   const addNotification = useCallback((title: string, message: string, type: 'danger' | 'warning' | 'info', linkId?: string) => {
@@ -182,6 +168,7 @@ const App: React.FC = () => {
   if (!session) return <Auth />;
   const isAdmin = session.user.email === ADMIN_EMAIL;
 
+  // Render Mobile Layout if on mobile
   if (isMobile) {
     return (
       <MobileLayout 

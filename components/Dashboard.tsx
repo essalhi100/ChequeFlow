@@ -13,8 +13,7 @@ import {
   HardDrive,
   Zap,
   ArrowUpRight,
-  CalendarDays,
-  ShieldAlert
+  CalendarDays
 } from 'lucide-react';
 import { Check, CheckType, CheckStatus, Currency } from '../types.ts';
 import { formatCurrency, getTypeBadge } from '../constants.tsx';
@@ -34,6 +33,7 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
   const totalOutgoing = outgoing.reduce((sum, c) => sum + c.amount, 0);
   const netLiquidity = totalIncoming - totalOutgoing;
 
+  // Dynamic Trend Calculation
   const trends = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -147,6 +147,27 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
         </div>
       </div>
 
+      {isAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in slide-in-from-left-4 duration-700">
+          {[
+            { label: 'Utilisateurs Actifs', value: '12 Nœuds', icon: Users, color: 'gold' },
+            { label: 'Documents Archivés', value: `${checks.length} Unités`, icon: HardDrive, color: 'emerald-500' },
+            { label: 'Vitesse de Latence', value: '0.8s Rps', icon: Zap, color: 'blue-500' },
+            { label: 'Indice de Risque', value: `${Math.round(100 - (overdueChecks.length / (checks.length || 1) * 100))}%`, icon: Activity, color: 'rose-500' }
+          ].map((stat, i) => (
+            <div key={i} className="glass-card p-5 rounded-[12px] border-white/5 flex items-center gap-4">
+              <div className={`p-3 bg-${stat.color}/10 rounded-[10px] text-${stat.color}`}>
+                <stat.icon size={18} />
+              </div>
+              <div>
+                <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{stat.label}</p>
+                <h4 className="text-sm font-bold text-white/80">{stat.value}</h4>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard title="Actifs (Entrants)" amount={totalIncoming} icon={TrendingUp} trend={trends.incTrend} colorClass="text-emerald-500" />
         <StatCard title="Passifs (Sortants)" amount={totalOutgoing} icon={TrendingDown} trend={trends.outTrend} colorClass="text-rose-500" />
@@ -191,6 +212,7 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
         </div>
 
         <div className="space-y-6">
+          {/* Main Risk Card */}
           <div className="glass-card p-7 rounded-[12px] border-rose-500/10 bg-rose-500/[0.02]">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2.5 bg-rose-500/10 rounded-[10px] text-rose-400">
@@ -199,7 +221,7 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
               <span className="text-[8px] font-bold text-rose-400 uppercase tracking-widest">Risque Critique</span>
             </div>
             <h5 className="text-xl font-bold text-white/90 mb-1">{overdueChecks.length} Alertes d'échéance</h5>
-            <p className="text-white/30 text-[11px] mb-6 leading-relaxed">Paiements en attente ayant dépassé la date de maturité.</p>
+            <p className="text-white/30 text-[11px] mb-6 leading-relaxed">Paiements en attente ayant dépassé la date de maturité sans confirmation.</p>
             <button 
               onClick={() => onTabChange('checks')}
               className="w-full py-3.5 bg-rose-500/90 text-white rounded-[10px] font-bold text-[11px] hover:bg-rose-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
@@ -208,8 +230,11 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
             </button>
           </div>
 
+          {/* Operational Alerts Area */}
           <div className="space-y-4 pt-2 border-t border-white/5">
             <h6 className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-4">Prochaines Opérations</h6>
+            
+            {/* Incoming Today Alert */}
             <div className={`p-5 rounded-[12px] border ${operationalAlerts.incomingToday.length > 0 ? 'border-emerald-500/20 bg-emerald-500/[0.03]' : 'border-white/5 bg-white/[0.01] opacity-40'}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -218,27 +243,34 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
                   </div>
                   <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Entrants (Aujourd'hui)</span>
                 </div>
+                {operationalAlerts.incomingToday.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-[8px] font-black text-emerald-400 uppercase">Actif</span>
+                )}
               </div>
               {operationalAlerts.incomingToday.length > 0 ? (
                 <>
                   <p className="text-lg font-black text-white">{formatCurrency(operationalAlerts.incomingTodaySum, currency)}</p>
                   <p className="text-[9px] text-emerald-400/60 font-bold mt-1 uppercase italic tracking-tighter">
-                    {operationalAlerts.incomingToday.length} instrument(s) à encaisser
+                    {operationalAlerts.incomingToday.length} instrument(s) à encaisser immédiatement
                   </p>
                 </>
               ) : (
-                <p className="text-[10px] text-white/20 italic">Aucun flux entrant prévu</p>
+                <p className="text-[10px] text-white/20 italic">Aucun flux entrant prévu aujourd'hui</p>
               )}
             </div>
 
+            {/* Outgoing Next 3 Days Alert */}
             <div className={`p-5 rounded-[12px] border ${operationalAlerts.outgoingNext3Days.length > 0 ? 'border-amber-500/20 bg-amber-500/[0.03]' : 'border-white/5 bg-white/[0.01] opacity-40'}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-[8px] ${operationalAlerts.outgoingNext3Days.length > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-white/5 text-white/20'}`}>
                     <CalendarDays size={14} />
                   </div>
-                  <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Sortants (3J)</span>
+                  <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Sortants (3 Prochains Jours)</span>
                 </div>
+                {operationalAlerts.outgoingNext3Days.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-[8px] font-black text-amber-400 uppercase">Alert</span>
+                )}
               </div>
               {operationalAlerts.outgoingNext3Days.length > 0 ? (
                 <>
@@ -248,7 +280,7 @@ const Dashboard: React.FC<DashboardProps> = ({ checks, currency, onTabChange, is
                   </p>
                 </>
               ) : (
-                <p className="text-[10px] text-white/20 italic">Aucune sortie critique</p>
+                <p className="text-[10px] text-white/20 italic">Aucune sortie critique dans les 72h</p>
               )}
             </div>
           </div>
