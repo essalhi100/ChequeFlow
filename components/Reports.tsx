@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie
@@ -10,7 +10,9 @@ import {
   AlertTriangle, ChevronDown,
   Info,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Check, CheckStatus, Currency, CheckType } from '../types.ts';
 import { COLORS, formatCurrency } from '../constants.tsx';
@@ -20,11 +22,18 @@ interface ReportsProps {
   currency: Currency;
 }
 
+const ITEMS_PER_PAGE = 8;
+
 const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | CheckType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | CheckStatus>('all');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter, statusFilter, dateRange]);
 
   const handleReset = () => {
     setSearchTerm('');
@@ -120,6 +129,13 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
       return matchesSearch && matchesType && matchesStatus && matchesRange;
     });
   }, [checks, searchTerm, typeFilter, statusFilter, dateRange]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredChecks.length / ITEMS_PER_PAGE);
+  const paginatedChecks = filteredChecks.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const SummaryCard = ({ title, amount, count, icon: Icon, color, subText }: any) => (
     <div className="glass-card p-6 rounded-[14px] border-white/5 relative overflow-hidden group hover:border-white/10 transition-all duration-500">
@@ -375,7 +391,7 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredChecks.map((check) => (
+              {paginatedChecks.map((check) => (
                 <tr key={check.id} className="hover:bg-white/[0.01] transition-colors group">
                   <td className="px-8 py-5">
                     <span className="text-[11px] font-bold text-white/40 tracking-widest">{check.check_number}</span>
@@ -424,6 +440,48 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {totalPages > 1 && (
+          <div className="px-8 py-4 border-t border-white/5 flex items-center justify-between bg-white/[0.01]">
+            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
+              Résultats {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredChecks.length)} sur {filteredChecks.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-gold/10 hover:text-gold transition-all disabled:opacity-20 disabled:pointer-events-none"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${
+                      currentPage === page 
+                        ? 'bg-gold text-black shadow-lg shadow-gold/20' 
+                        : 'text-white/30 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-gold/10 hover:text-gold transition-all disabled:opacity-20 disabled:pointer-events-none"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

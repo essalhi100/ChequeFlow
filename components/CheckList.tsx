@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Search, Plus, CheckCircle2, Pencil, RotateCcw, UserCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, CheckCircle2, Pencil, RotateCcw, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Check, Currency, CheckType, CheckStatus } from '../types.ts';
 import { formatCurrency, getStatusBadge, getTypeBadge } from '../constants.tsx';
 
@@ -14,11 +14,19 @@ interface CheckListProps {
   isAdmin?: boolean;
 }
 
+const ITEMS_PER_PAGE = 8;
+
 const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, onMarkAsPaid, isAdmin }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | CheckStatus>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | CheckType>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset to first page when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, dateFilter, statusFilter, typeFilter]);
 
   const handleReset = () => {
     setSearchTerm('');
@@ -50,6 +58,13 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
     }
     return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredChecks.length / ITEMS_PER_PAGE);
+  const paginatedChecks = filteredChecks.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -131,7 +146,7 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredChecks.map((check) => (
+              {paginatedChecks.map((check) => (
                 <tr key={check.id} className="hover:bg-white/[0.015] transition-colors group">
                   <td className="px-6 py-4 text-[11px] font-medium text-white/40">
                     {check.check_number}
@@ -172,7 +187,7 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
                   </td>
                 </tr>
               ))}
-              {filteredChecks.length === 0 && (
+              {paginatedChecks.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
                     <p className="text-xs font-bold text-white/20 uppercase tracking-widest italic">Aucun instrument trouvé</p>
@@ -182,6 +197,48 @@ const CheckList: React.FC<CheckListProps> = ({ checks, currency, onAdd, onEdit, 
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between bg-white/[0.01]">
+            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
+              Affichage {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredChecks.length)} sur {filteredChecks.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-gold/10 hover:text-gold transition-all disabled:opacity-20 disabled:pointer-events-none"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${
+                      currentPage === page 
+                        ? 'bg-gold text-black shadow-lg shadow-gold/20' 
+                        : 'text-white/30 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-gold/10 hover:text-gold transition-all disabled:opacity-20 disabled:pointer-events-none"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
