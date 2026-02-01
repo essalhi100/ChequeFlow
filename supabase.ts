@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // القيم الصحيحة للمشروع الخاص بك
-const supabaseUrl = 'https://hbycnloggmuovsxulzuv.supabase.co';
-const supabaseAnonKey = 'sb_publishable_P6sc647KZDinDYnsoZ1MtA_RdGMRSc3';
+const supabaseUrl = 'https://eafsxriggorubqqsyezd.supabase.co';
+const supabaseAnonKey = 'sb_publishable_ua-7c0iLf10GGsacyVZrDQ_y4zYM3Xc';
 
 export const isConfigured = true;
 

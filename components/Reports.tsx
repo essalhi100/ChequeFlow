@@ -130,7 +130,6 @@ const Reports: React.FC<ReportsProps> = ({ checks, currency }) => {
     });
   }, [checks, searchTerm, typeFilter, statusFilter, dateRange]);
 
-  // Pagination Logic
   const totalPages = Math.ceil(filteredChecks.length / ITEMS_PER_PAGE);
   const paginatedChecks = filteredChecks.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,

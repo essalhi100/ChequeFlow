@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote, AlertCircle, UserCheck, Type as TypeIcon } from 'lucide-react';
+import { X, Camera, Loader2, Upload, Receipt, Calendar, Building2, User, DollarSign, Fingerprint, ShieldCheck, StickyNote, Image as ImageIcon } from 'lucide-react';
 import { Check, CheckType, CheckStatus } from '../types.ts';
 import { extractCheckData } from '../services/geminiService.ts';
 
@@ -9,13 +10,13 @@ interface CheckModalProps {
   initialData?: Check | null;
 }
 
-const InputWrapper = ({ label, icon: Icon, children, error }: any) => (
+const InputWrapper = ({ label, icon: Icon, children }: any) => (
   <div className="space-y-1.5 group">
-    <label className={`text-[10px] uppercase tracking-widest font-black ml-1 transition-colors ${error ? 'text-rose-500' : 'text-white/30 group-focus-within:text-gold'}`}>
-      {label} {error && '*'}
+    <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1 group-focus-within:text-gold transition-colors">
+      {label}
     </label>
-    <div className={`relative rounded-[14px] border transition-all duration-300 bg-white/5 focus-within:ring-1 ${error ? 'border-rose-500/50 bg-rose-500/[0.02] ring-rose-500/20' : 'border-white/10 focus-within:border-gold/50 focus-within:bg-gold/[0.02] focus-within:ring-gold/20'}`}>
-      <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${error ? 'text-rose-500' : 'text-white/20 group-focus-within:text-gold'}`}>
+    <div className="relative rounded-[14px] border border-white/10 bg-white/5 transition-all duration-300 focus-within:border-gold/50 focus-within:bg-gold/[0.02] focus-within:ring-1 focus-within:ring-gold/20">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold transition-colors">
         <Icon size={18} />
       </div>
       {children}
@@ -24,16 +25,14 @@ const InputWrapper = ({ label, icon: Icon, children, error }: any) => (
 );
 
 const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData }) => {
-  const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState<Partial<Check>>(
     initialData || {
       check_number: '',
       bank_name: '',
       amount: 0,
-      issue_date: today,
+      issue_date: new Date().toISOString().split('T')[0],
       due_date: '',
       entity_name: '',
-      fund_name: '',
       type: CheckType.INCOMING,
       status: CheckStatus.PENDING,
       notes: '',
@@ -42,7 +41,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
   );
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,7 +55,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
     if (!file) return;
 
     setIsProcessing(true);
-    setErrors([]);
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
@@ -68,9 +65,8 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
         setFormData(prev => ({
           ...prev,
           ...extracted,
-          issue_date: prev.issue_date || today,
+          issue_date: extracted.issue_date || prev.issue_date,
           due_date: extracted.due_date || prev.due_date,
-          fund_name: extracted.fund_name || prev.fund_name,
           notes: extracted.notes || prev.notes,
         }));
       }
@@ -79,26 +75,11 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
     reader.readAsDataURL(file);
   };
 
-  const validate = () => {
-    const newErrors: string[] = [];
-    if (!formData.check_number) newErrors.push("Numéro de Chèque est obligatoire.");
-    if (!formData.amount || formData.amount <= 0) newErrors.push("Montant du Capital est obligatoire.");
-    if (!formData.entity_name) newErrors.push("A Émetteur est obligatoire.");
-    setErrors(newErrors);
-    return newErrors.length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validate()) {
-      onSave(formData);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
       <div className="glass-card w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[24px] flex flex-col shadow-2xl border-white/10 animate-in zoom-in duration-300">
         
+        {/* Header */}
         <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
           <div>
             <h2 className="text-xl md:text-2xl font-black italic tracking-tight text-white uppercase">
@@ -117,8 +98,10 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
           </button>
         </div>
 
+        {/* Combined Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 space-y-8">
           
+          {/* Integrated Image Section */}
           <div className="space-y-3">
             <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">
               Capture & Analyse OCR
@@ -160,8 +143,9 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-8">
             
+            {/* Type Selector */}
             <div className="grid grid-cols-2 gap-4">
                <button 
                  type="button"
@@ -173,35 +157,29 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                <button 
                  type="button"
                  onClick={() => setFormData({...formData, type: CheckType.OUTGOING})}
-                 className={`py-4 rounded-[16px] border font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${formData.type === CheckType.OUTGOING ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-white/5 border-transparent text-white/20 hover:text-white/10'}`}
+                 className={`py-4 rounded-[16px] border font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${formData.type === CheckType.OUTGOING ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-white/5 border-transparent text-white/20 hover:bg-white/10'}`}
                >
                  <Receipt size={16} /> Sortant
                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputWrapper label="Numéro de Chèque" icon={Fingerprint} error={errors.some(e => e.includes("Numéro"))}>
+              <InputWrapper label="Numéro de Chèque" icon={Fingerprint}>
                 <input 
                   ref={firstInputRef}
                   value={formData.check_number}
-                  onChange={e => {
-                    setFormData({...formData, check_number: e.target.value});
-                    setErrors(prev => prev.filter(err => !err.includes("Numéro")));
-                  }}
+                  onChange={e => setFormData({...formData, check_number: e.target.value})}
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none placeholder:text-white/5"
                   placeholder="Ex: 12345678"
                 />
               </InputWrapper>
               
-              <InputWrapper label="Montant du Capital" icon={DollarSign} error={errors.some(e => e.includes("Montant"))}>
+              <InputWrapper label="Montant du Capital" icon={DollarSign}>
                 <input 
                   type="number"
                   step="any"
                   value={formData.amount || ''}
-                  onChange={e => {
-                    setFormData({...formData, amount: parseFloat(e.target.value) || 0});
-                    setErrors(prev => prev.filter(err => !err.includes("Montant")));
-                  }}
+                  onChange={e => setFormData({...formData, amount: parseFloat(e.target.value) || 0})}
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-black focus:outline-none placeholder:text-white/5"
                   placeholder="0.00"
                 />
@@ -209,13 +187,10 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputWrapper label="A Émetteur" icon={User} error={errors.some(e => e.includes("Émetteur"))}>
+              <InputWrapper label="Bénéficiaire / Émetteur" icon={User}>
                 <input 
                   value={formData.entity_name}
-                  onChange={e => {
-                    setFormData({...formData, entity_name: e.target.value});
-                    setErrors(prev => prev.filter(err => !err.includes("Émetteur")));
-                  }}
+                  onChange={e => setFormData({...formData, entity_name: e.target.value})}
                   className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-semibold focus:outline-none placeholder:text-white/5"
                   placeholder="Nom de l'entité"
                 />
@@ -230,15 +205,6 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
                 />
               </InputWrapper>
             </div>
-
-            <InputWrapper label="A L'ORDRE DE" icon={UserCheck}>
-              <input 
-                value={formData.fund_name || ''}
-                onChange={e => setFormData({...formData, fund_name: e.target.value})}
-                className="w-full bg-transparent border-none py-4 pl-12 pr-6 text-white text-sm font-bold focus:outline-none placeholder:text-white/5"
-                placeholder="A l'ordre de..."
-              />
-            </InputWrapper>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <InputWrapper label="Date d'Émission" icon={Calendar}>
@@ -305,26 +271,10 @@ const CheckModal: React.FC<CheckModalProps> = ({ onClose, onSave, initialData })
               </div>
             </div>
 
-            {/* Error Message Section */}
-            {errors.length > 0 && (
-              <div className="p-4 rounded-[14px] bg-rose-500/10 border border-rose-500/20 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-3 text-rose-500 mb-2">
-                  <AlertCircle size={18} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Champs obligatoires manquants</span>
-                </div>
-                <ul className="space-y-1">
-                  {errors.map((error, idx) => (
-                    <li key={idx} className="text-[11px] text-white/40 font-medium italic pl-7">• {error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             <div className="pt-4">
               <button 
                 type="submit"
-                className="w-full py-5 bg-gold text-black rounded-[16px] font-black text-[11px] uppercase tracking-[0.2em] gold-glow hover:scale-[1.01] active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isProcessing}
+                className="w-full py-5 bg-gold text-black rounded-[16px] font-black text-[11px] uppercase tracking-[0.2em] gold-glow hover:scale-[1.01] active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-3"
               >
                 {initialData ? 'Mettre à jour le registre' : 'Enregistrer dans le coffre'}
               </button>

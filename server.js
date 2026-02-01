@@ -3,6 +3,13 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { transform } = require('sucrase');
+require('dotenv').config({ path: '.env.local' });
+require('dotenv').config();
+
+// Fallback: Map GEMINI_API_KEY to API_KEY if API_KEY is missing
+if (!process.env.API_KEY && process.env.GEMINI_API_KEY) {
+  process.env.API_KEY = process.env.GEMINI_API_KEY;
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -29,7 +36,7 @@ app.use((req, res, next) => {
   const ext = path.extname(req.path);
   if (ext === '.ts' || ext === '.tsx') {
     const filePath = path.join(__dirname, req.path);
-    
+
     if (fs.existsSync(filePath)) {
       try {
         const content = fs.readFileSync(filePath, 'utf8');
@@ -39,7 +46,7 @@ app.use((req, res, next) => {
           jsxPragma: 'React.createElement',
           jsxFragmentPragma: 'React.Fragment'
         });
-        
+
         let code = result.code;
 
         // Inject essential environment variables into the client-side code.
@@ -50,7 +57,7 @@ app.use((req, res, next) => {
           const regex = new RegExp(`process\\.env\\.${key}`, 'g');
           code = code.replace(regex, JSON.stringify(val));
         });
-        
+
         res.set('Content-Type', 'application/javascript');
         return res.send(code);
       } catch (err) {

@@ -1,9 +1,10 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { 
   TrendingUp, TrendingDown, Clock, CheckCircle2, 
   ShieldCheck, AlertTriangle, Filter, RotateCcw, 
   MoreVertical, Edit2, CheckCircle, Banknote,
-  ChevronRight, Archive, UserCheck, ChevronLeft
+  ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { Check, CheckType, CheckStatus, Currency } from '../types.ts';
 import { formatCurrency } from '../constants.tsx';
@@ -23,7 +24,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
   const [statusFilter, setStatusFilter] = useState<CheckStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [timeFilter, typeFilter, statusFilter, checks]);
@@ -56,13 +56,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
     });
   }, [checks, timeFilter, typeFilter, statusFilter]);
 
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredData.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredData, currentPage]);
-
   const stats = useMemo(() => {
     const sum = (type?: CheckType, status?: CheckStatus) => {
       return filteredData
@@ -80,6 +73,9 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
     };
   }, [filteredData]);
 
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   const handleReset = () => {
     setTimeFilter('month');
     setTypeFilter('all');
@@ -96,7 +92,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24">
-      
       <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
         {[
           { id: 'today', label: 'Today' },
@@ -189,12 +184,6 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
                 <div>
                   <h5 className="text-[14px] font-semibold text-white truncate max-w-[130px]">{c.entity_name}</h5>
                   <p className="text-[10px] text-white/30 font-normal truncate max-w-[130px]">{c.bank_name} • {c.check_number}</p>
-                  {c.fund_name && (
-                    <div className="flex items-center gap-1 mt-1 text-gold/60">
-                      <UserCheck size={10} />
-                      <span className="text-[9px] font-black uppercase tracking-widest">{c.fund_name}</span>
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="text-right flex items-center gap-3">
@@ -216,26 +205,26 @@ const MobileDashboard: React.FC<MobileDashboardProps> = ({ checks, currency, onE
             </div>
           )}
 
-          {/* Mobile Pagination Controls */}
+          {/* Mobile Pagination Footer */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 pb-8">
+            <div className="flex items-center justify-between mt-6 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
               <button 
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                className="p-3 rounded-xl bg-white/5 text-white/40 disabled:opacity-20 transition-all active:scale-90"
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="p-3 bg-white/5 rounded-xl text-white disabled:opacity-20 active:scale-90 transition-all"
               >
                 <ChevronLeft size={20} />
               </button>
               
               <div className="flex flex-col items-center">
-                <p className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">Page {currentPage}</p>
-                <p className="text-[8px] text-white/20 uppercase tracking-widest font-bold">sur {totalPages}</p>
+                <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">Page {currentPage}</span>
+                <span className="text-[8px] text-white/20 uppercase tracking-widest">sur {totalPages}</span>
               </div>
 
               <button 
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                className="p-3 rounded-xl bg-white/5 text-white/40 disabled:opacity-20 transition-all active:scale-90"
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="p-3 bg-white/5 rounded-xl text-white disabled:opacity-20 active:scale-90 transition-all"
               >
                 <ChevronRight size={20} />
               </button>

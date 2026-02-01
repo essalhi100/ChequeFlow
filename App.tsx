@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import Dashboard from './components/Dashboard.tsx';
@@ -22,7 +21,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
 };
 
 const ADMIN_EMAIL = 'admin@apollo.com';
-const STORAGE_KEY = 'finansse_internal_db_v2'; 
+const STORAGE_KEY = 'finansse_internal_db_v2';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -50,7 +49,6 @@ const App: React.FC = () => {
         const parsed = JSON.parse(saved);
         setChecks(parsed);
       } catch (e) {
-        console.error("Failed to parse stored checks", e);
         setChecks([]);
       }
     }
@@ -61,16 +59,7 @@ const App: React.FC = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(checks));
     } catch (e) {
-      if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-        console.warn('Storage quota exceeded. Stripping images to preserve financial data.');
-        // If storage is full, we save the checks without the base64 images
-        const strippedChecks = checks.map(({ image_url, ...rest }) => rest);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(strippedChecks));
-        } catch (innerError) {
-          console.error('Critical: LocalStorage completely failed.', innerError);
-        }
-      }
+      console.warn('LocalStorage limit reached.');
     }
   }, [checks]);
 
@@ -110,16 +99,19 @@ const App: React.FC = () => {
 
   const syncWithServer = useCallback(async () => {
     if (!session || !isConfigured) return;
+    
+    // FETCH ALL CHECKS - REMOVED USER_ID FILTER
     const { data: checksData, error } = await supabase
       .from('checks')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (!error && checksData) {
       setChecks(checksData);
     }
-    
-    const { data: settingsData } = await supabase.from('system_settings').select('*').maybeSingle();
+
+    // FETCH GLOBAL SETTINGS
+    const { data: settingsData } = await supabase.from('system_settings').select('*').limit(1).maybeSingle();
     if (settingsData) setSettings(prev => ({ ...prev, ...settingsData }));
   }, [session]);
 
@@ -130,13 +122,19 @@ const App: React.FC = () => {
   const handleSaveSettings = async (newSettings: SystemSettings) => {
     setSettings(newSettings);
     if (isConfigured && session) {
-      await supabase.from('system_settings').upsert({ ...newSettings, user_id: session.user.id });
+      // Upsert global settings record
+      const { data: existing } = await supabase.from('system_settings').select('id').limit(1).maybeSingle();
+      if (existing) {
+        await supabase.from('system_settings').update({ ...newSettings }).eq('id', existing.id);
+      } else {
+        await supabase.from('system_settings').insert({ ...newSettings });
+      }
     }
   };
 
   const handleSaveCheck = async (checkData: Partial<Check>) => {
     if (!session) return;
-    const tempId = editingCheck ? editingCheck.id : Math.random().toString(36).substr(2, 9);
+    const tempId = editingCheck ? editingCheck.id : crypto.randomUUID();
     const optimisticCheck: Check = {
       id: tempId,
       created_at: editingCheck ? editingCheck.created_at : new Date().toISOString(),
@@ -156,7 +154,8 @@ const App: React.FC = () => {
       if (editingCheck) {
         await supabase.from('checks').update(checkData).eq('id', editingCheck.id);
       } else {
-        await supabase.from('checks').insert({ ...checkData, user_id: session.user.id });
+        // Insert without user_id to allow global visibility
+        await supabase.from('checks').insert({ ...checkData });
       }
     }
   };
@@ -175,7 +174,7 @@ const App: React.FC = () => {
 
   if (loading) return (
     <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
-       <Loader2 className="w-10 h-10 text-gold animate-spin" />
+      <Loader2 className="w-10 h-10 text-gold animate-spin" />
     </div>
   );
 
@@ -184,7 +183,7 @@ const App: React.FC = () => {
 
   if (isMobile) {
     return (
-      <MobileLayout 
+      <MobileLayout
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         checks={checks}
@@ -200,21 +199,21 @@ const App: React.FC = () => {
 
   return (
     <div className="flex bg-[#05070a] min-h-screen text-white overflow-hidden">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        companyName={settings.company_name} 
-        logoUrl={settings.logo_url} 
-        onLogout={() => supabase.auth.signOut()} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        companyName={settings.company_name}
+        logoUrl={settings.logo_url}
+        onLogout={() => supabase.auth.signOut()}
         userEmail={session.user.email}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
       />
-      
+
       <main className="flex-1 overflow-y-auto h-screen relative custom-scrollbar">
         <div className="sticky top-0 z-40 p-8 flex items-center justify-end pointer-events-none">
           <div className="relative pointer-events-auto">
-            <button 
+            <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               className="p-3 rounded-full glass-card border-white/5 text-white/40 relative"
             >
@@ -255,10 +254,10 @@ const App: React.FC = () => {
         <div className="px-8 pb-12 max-w-7xl mx-auto">
           {activeTab === 'dash' && <Dashboard checks={checks} currency={settings.currency} onTabChange={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'checks' && (
-            <CheckList 
-              checks={checks} 
-              currency={settings.currency} 
-              onAdd={() => { setEditingCheck(null); setIsModalOpen(true); }} 
+            <CheckList
+              checks={checks}
+              currency={settings.currency}
+              onAdd={() => { setEditingCheck(null); setIsModalOpen(true); }}
               onEdit={(c) => { setEditingCheck(c); setIsModalOpen(true); }}
               onDelete={handleDeleteCheck}
               onMarkAsPaid={handleMarkAsPaid}
@@ -267,10 +266,10 @@ const App: React.FC = () => {
           )}
           {activeTab === 'performance' && <Reports checks={checks} currency={settings.currency} />}
           {activeTab === 'risks' && (
-            <RiskIntelligence 
-              checks={checks} 
-              currency={settings.currency} 
-              highValueThreshold={settings.high_value_threshold} 
+            <RiskIntelligence
+              checks={checks}
+              currency={settings.currency}
+              highValueThreshold={settings.high_value_threshold}
               onViewCheck={(id) => {
                 const c = checks.find(ch => ch.id === id);
                 if (c) { setEditingCheck(c); setIsModalOpen(true); }
@@ -282,8 +281,8 @@ const App: React.FC = () => {
       </main>
 
       {isModalOpen && (
-        <CheckModal 
-          onClose={() => { setIsModalOpen(false); setEditingCheck(null); }} 
+        <CheckModal
+          onClose={() => { setIsModalOpen(false); setEditingCheck(null); }}
           onSave={handleSaveCheck}
           initialData={editingCheck}
         />
